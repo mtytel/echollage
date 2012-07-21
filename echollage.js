@@ -9,7 +9,7 @@ var echollage = {};
 // Call request_track to get track information from an artist similar to the
 // base artist.
 echollage.collector = function() {
-  var the_nest = nest.nest('ZGEHXS9DI7KNKZOQR');
+  var the_nest = nest.nest('UPLO3CALHCEZKZTTA');
 
   var similar_artist_ids = [];
   var base_artist_api = null;
