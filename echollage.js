@@ -114,8 +114,7 @@ echollage.collector = function() {
     artist_start_position = (artist_start_position + results) % MAX_ARTISTS;
   };
 
-  // Sets the base artist. New |request_track| calls will return tracks from
-  // artists that are similar to the artist represented by |artist_id|.
+  // Sets the base artist that we will return similar tracks for.
   var set_base_artist = function(artist_id) {
     if (!the_nest) {
       console.log("Echo Nest is not available:(");
@@ -139,13 +138,24 @@ echollage.display = function() {
   var WIDTH = 6;
   var HEIGHT = 4;
   var current_playing = null;
+  var last_loaded = null;
+
+  var update_position = 0;
+  var update_order = function() {
+    var shuffled = [];
+    for (i = 0; i < WIDTH * HEIGHT; i++)
+      shuffled.splice(parseInt((i + 1) * Math.random()), 0, i);
+    return shuffled;
+  }();
 
   function cell_id(position) {
     return 'piece' + position;
   };
 
-  var init_html = function() {
-    var echollage_elements = document.getElementById('echollage');
+  var init = function() {
+    var echollage = document.getElementById('echollage');
+    echollage.innerHTML = '';
+
     for (r = 0; r < WIDTH; ++r) {
       var row = document.createElement('ul');
 
@@ -154,76 +164,89 @@ echollage.display = function() {
         cell.setAttribute('id', cell_id(r * HEIGHT + c));
         row.appendChild(cell);
       }
-      echollage_elements.appendChild(row);
+      echollage.appendChild(row);
     }
   };
 
-  var replace_next = function(track) {
-    var next = parseInt(Math.random() * WIDTH * HEIGHT);
-    cell = document.getElementById(cell_id(next));
+  function play(audio) {
+    if (current_playing)
+      current_playing.pause();
 
+    current_playing = audio;
+    audio.play();
+    // If we aren't getting any new songs, this will repeat the last song.
+    // I'll consider this a feature.
+    audio.addEventListener('ended', function() {
+      play(last_loaded);
+    });
+  };
+
+  function cell_loaded(cell, audio, image) {
+    cell.innerHTML = '';
+    cell.appendChild(image);
+    cell.appendChild(audio);
+
+    last_loaded = audio;
+    image.onclick = function() {
+      if (audio.paused)
+        play(audio);
+      else
+        audio.pause();
+    };
+  };
+
+  function replace_cell(id, track) {
+    var cell = document.getElementById(cell_id(id));
     var audio = new Audio()
     var image = new Image();
 
-    // TODO: Refactor this real good.
-    var image_loaded = false;
-    var audio_loaded = false;
-
-    console.log("Loading: " + track.preview_url);
-    function draw() {
-      if (cell.childNodes[0])
-        cell.removeChild(cell.childNodes[0]);
-      cell.appendChild(image);
-      if (current_playing)
-        current_playing.pause();
-      current_playing = audio;
-      audio.play();
-    };
-    audio.addEventListener('canplaythrough', function() {
-      if (image_loaded)
-        draw();
-      audio_loaded = true;
-      console.log("audio loaded");
-    });
-    image.onload = function() {
-      if (audio_loaded)
-        draw();
-      image_loaded = true;
-      console.log("image loaded");
+    var other_loaded = false;
+    var component_loaded = function() {
+      if (other_loaded)
+        cell_loaded(cell, audio, image);
+      other_loaded = true;
     };
 
+    audio.addEventListener('canplaythrough', component_loaded);
+    image.onload = component_loaded;
     audio.src = track.preview_url;
     image.src = track.release_image;
   };
 
+  var replace_next = function(track) {
+    replace_cell(update_order[update_position], track);
+    update_position = (update_position + 1) % (WIDTH * HEIGHT);
+  };
+
   return {
-    init_html: init_html,
+    init: init,
     replace_next: replace_next,
   };
 }();
 
 // Update controller.
 echollage.updater = function() {
-
-  var start = function() {
-    echollage.display.init_html();
-    echollage.collector.set_base_artist('AR6XZ861187FB4CECD');
-  };
+  var REQUEST_PERIOD = 3000;
 
   function handle_track(track) {
     if (track)
       echollage.display.replace_next(track);
   };
 
-  var request_track = function() {
+  function update() {
     echollage.collector.request_track(handle_track);
+    setTimeout(update, REQUEST_PERIOD);
+  };
+
+  var start = function() {
+    echollage.collector.set_base_artist('AR6XZ861187FB4CECD');
+    echollage.display.init();
+    setTimeout(update, REQUEST_PERIOD);
   };
 
   return {
     start: start,
-    request_track: request_track,
   };
 }();
 
 window.onload = echollage.updater.start;
-
