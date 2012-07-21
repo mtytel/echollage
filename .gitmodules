@@ -1,0 +1,3 @@
+[submodule "nestjs"]
+	path = nestjs
+	url = git://github.com/echonest/nestjs.git
