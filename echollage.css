@@ -2,14 +2,14 @@
 body {
   padding:0;
   margin:0;
+  background-color:#000;
 }
 
 #echollage {
-  background-image:url(logo_echonest.jpg);
+  background-image:url(backdrop.png);
   background-repeat:no-repeat;
   background-position:center;
-  width:1220px;
-  height:600px;
+  height:800px;
 }
 
 #echollage ul {
