@@ -23,7 +23,7 @@ echollage.collector = function() {
   // and |artist_name|. If no valid tracks are found, returns null.
   function select_track(tracks) {
     while (tracks.length != 0) {
-      var random_index = parseInt(Math.random() * tracks.length);
+      var random_index = parseInt(Math.random() * tracks.length, 10);
       var track_info = tracks[random_index];
 
       if (track_info.tracks.length > 0) {
@@ -34,14 +34,14 @@ echollage.collector = function() {
             artist_id: track_info.artist_id,
             artist_name: track_info.artist_name,
             preview_url: track.preview_url,
-            release_image: track.release_image,
+            release_image: track.release_image
           };
         }
       }
       tracks.splice(random_index, 1);
     }
     return null;
-  };
+  }
 
   // Makes request to the Echo Nest server requesting tracks for a queued
   // similar artist and returns a track object selected by |select_track|.
@@ -65,7 +65,7 @@ echollage.collector = function() {
     var request_data = {
       artist_id: artist_id,
       results: TRACKS_RESULTS,
-      bucket: ['id:7digital-US', 'tracks'],
+      bucket: ['id:7digital-US', 'tracks']
     };
     the_nest.searchSongs(request_data, handle_tracks);
   };
@@ -85,9 +85,9 @@ echollage.collector = function() {
 
     similar_artist_ids = [];
     var artists = results.artists;
-    for (i = 0; i < artists.length; ++i)
+    for (var i = 0; i < artists.length; ++i)
       similar_artist_ids.push(artists[i].id);
-  };
+  }
 
   // Makes request to the Echo Nest server requesting artists similar to our
   // focal artist. Results are passed to |handle_similar_artists|.
@@ -97,7 +97,7 @@ echollage.collector = function() {
       return;
     }
     active_request_id = artist_id;
-    focal_artist_api = the_nest.artist({id: artist_id});
+    var focal_artist_api = the_nest.artist({id: artist_id});
 
     var handler_wrapper = function(error, artists) {
       handle_similar_artists(artist_id, error, artists);
@@ -107,7 +107,7 @@ echollage.collector = function() {
 
   return {
     set_focal_artist: set_focal_artist,
-    request_track: request_track,
+    request_track: request_track
   };
 }();
 
@@ -121,29 +121,33 @@ echollage.display = function() {
   var last_loaded_cell = null;
   var update_position = 0;
 
+  // Computes integer position based on grid coordinates.
+  function compute_position(r, c) {
+    return r * WIDTH + c;
+  }
+
   // This start up filling 'cuts off' edges of grid.
   // Rearrange for different effects.
   var update_order = function() {
     var positions = [];
-    var n = 0, s = HEIGHT, e = WIDTH, w = 0;
-
-    while (n < s && e > w) {
+    var north = 0, south = HEIGHT, east = WIDTH, west = 0, r = 0, c = 0;
+    while (north < south && east > west) {
       // South side.
-      for (c = e - 1; c >= w; --c)
-        positions.push((s - 1) * WIDTH + c);
-      s--;
+      for (c = east - 1; c >= west; --c)
+        positions.push(compute_position(south - 1, c));
+      south--;
       // North side.
-      for (c = w; c < e; ++c)
-        positions.push(n * WIDTH + c);
-      n++;
+      for (c = west; c < east; ++c)
+        positions.push(compute_position(north, c));
+      north++;
       // East side.
-      for (r = n; r < s; ++r)
-        positions.push(r * WIDTH + (e - 1));
-      e--;
+      for (r = north; r < south; ++r)
+        positions.push(compute_position(r, east - 1));
+      east--;
       // West side.
-      for (r = s - 1; r >= n; --r)
-        positions.push(r * WIDTH + w);
-      w++;
+      for (r = south - 1; r >= north; --r)
+        positions.push(compute_position(r, west));
+      west++;
     }
     return positions;
   }();
@@ -151,37 +155,38 @@ echollage.display = function() {
   // Returns a list of numbers 1 to n shuffled.
   function shuffle(n) {
     var shuffled = [];
-    for (i = 0; i < n; i++)
-      shuffled.splice(parseInt((i + 1) * Math.random()), 0, i);
+    for (var i = 0; i < n; i++)
+      shuffled.splice(parseInt((i + 1) * Math.random(), 10), 0, i);
     return shuffled;
-  };
+  }
 
   function get_cell_id(position) {
     return 'piece' + position;
-  };
+  }
 
   function get_cell_by_position(position) {
     return document.getElementById(get_cell_id(position));
-  };
+  }
 
   var init = function() {
-    var echollage = document.getElementById('echollage');
-    echollage.innerHTML = '';
+    var echollage_dom = document.getElementById('echollage');
+    echollage_dom.innerHTML = '';
 
-    for (r = 0; r < WIDTH; ++r) {
+    for (var r = 0; r < WIDTH; ++r) {
       var row = document.createElement('ul');
 
-      for (c = 0; c < HEIGHT; ++c) {
+      for (var c = 0; c < HEIGHT; ++c) {
         var cell = document.createElement('li');
         cell.setAttribute('id', get_cell_id(r * HEIGHT + c));
         row.appendChild(cell);
       }
-      echollage.appendChild(row);
+      echollage_dom.appendChild(row);
     }
   };
 
   function get_next_cell() {
-    var cell = get_cell_by_position(update_order[update_position++]);
+    var cell = get_cell_by_position(update_order[update_position]);
+    update_position++;
     if (update_position >= update_order.length) {
       update_order = shuffle(WIDTH * HEIGHT);
       update_position = 0;
@@ -190,7 +195,7 @@ echollage.display = function() {
     if (cell === current_focal_cell || cell === current_playing_cell)
       return get_next_cell();
     return cell;
-  };
+  }
 
   function toggle(cell) {
     var audio = cell.getElementsByTagName('audio')[0];
@@ -216,7 +221,7 @@ echollage.display = function() {
     audio.addEventListener('ended', function() {
       toggle(last_loaded_cell);
     });
-  };
+  }
 
   function new_cell_loaded(audio, image) {
     var cell = get_next_cell();
@@ -228,10 +233,10 @@ echollage.display = function() {
     image.onclick = function() {
       toggle(cell);
     };
-  };
+  }
 
   var load_track = function(track) {
-    var audio = new Audio()
+    var audio = new Audio();
     var image = new Image();
 
     var other_loaded = false;
@@ -249,7 +254,7 @@ echollage.display = function() {
 
   return {
     init: init,
-    load_track: load_track,
+    load_track: load_track
   };
 }();
 
@@ -266,7 +271,7 @@ echollage.updater = function() {
   function handle_track(track) {
     if (track)
       echollage.display.load_track(track);
-  };
+  }
 
   // Requests a new track from the collector.
   // Update speed trails off exponentially with half life |HALF_LIFE| from
@@ -277,7 +282,7 @@ echollage.updater = function() {
     var wait = decay * START_REQUEST_PERIOD + (1 - decay) * SETTLE_REQUEST_PERIOD;
     setTimeout(update, wait);
     update_count++;
-  };
+  }
 
   // Init everything and start requests.
   var start = function() {
@@ -287,7 +292,7 @@ echollage.updater = function() {
   };
 
   return {
-    start: start,
+    start: start
   };
 }();
 
