@@ -4,21 +4,19 @@
 
 var echollage = {};
 
-// A nest.js wrapper to find similar tracks to a given base artist.
-// Set the base artist using set_base_artist.
+// A nest.js wrapper to find similar tracks to a given focal artist.
+// Set the focal artist using set_focal_artist.
 // Call request_track to get track information from an artist similar to the
-// base artist.
+// focal artist.
 echollage.collector = function() {
   var the_nest = nest.nest('UPLO3CALHCEZKZTTA');
 
   var similar_artist_ids = [];
-  var base_artist_api = null;
+  var active_request_id = null;
 
   var TRACKS_RESULTS = 30;
-  var ARTIST_RESULTS = 15;
-  var MAX_ARTISTS = 100;
-  var LOW_ARTIST_THRESHOLD = 5;
-  var artist_start_position = 0;
+  var ARTIST_RESULTS = 100;
+  var artist_position = 0;
 
   // Selects a track containing a |preview_url| and a |release_image| from
   // the Echo Nest track search results and returns them with the |artist_id|
@@ -45,16 +43,11 @@ echollage.collector = function() {
     return null;
   };
 
-  // Makes request to the Echo Nest server requesting tracks for an queued
+  // Makes request to the Echo Nest server requesting tracks for a queued
   // similar artist and returns a track object selected by |select_track|.
-  // Requests more similar artists if we're running low.
   var request_track = function(track_callback) {
-    if (!the_nest) {
-      console.log("Echo Nest is not available:(");
-      return;
-    }
-    if (similar_artist_ids.length === 0) {
-      console.log('There are no similar artists to pull from.');
+    if (!the_nest || similar_artist_ids.length === 0) {
+      console.log("The Echo Nest hasn't reponded :(");
       return;
     }
 
@@ -66,90 +59,109 @@ echollage.collector = function() {
       track_callback(select_track(tracks));
     };
 
-    var artist_id = similar_artist_ids.shift();
+    var artist_id = similar_artist_ids[artist_position];
+    artist_position = (artist_position + 1) % similar_artist_ids.length;
+
     var request_data = {
       artist_id: artist_id,
       results: TRACKS_RESULTS,
       bucket: ['id:7digital-US', 'tracks'],
     };
-
     the_nest.searchSongs(request_data, handle_tracks);
-    if (similar_artist_ids.length < LOW_ARTIST_THRESHOLD)
-      request_more_artists();
   };
 
   // Appends received artist ids to the similar artist queue.
   // Throws away old results because we don't want to actively return tracks
   // for the wrong artist.
-  function handle_similar_artists(requested_artist_id, error, results) {
+  function handle_similar_artists(response_artist_id, error, results) {
     if (error) {
       console.log('Similar artists request failed: ' + error);
       return;
     }
-    if (requested_artist_id != base_artist_api.id) {
+    if (response_artist_id != active_request_id) {
       console.log('Received old similar artist results. Ignoring..');
       return;
     }
 
+    similar_artist_ids = [];
     var artists = results.artists;
     for (i = 0; i < artists.length; ++i)
       similar_artist_ids.push(artists[i].id);
   };
 
   // Makes request to the Echo Nest server requesting artists similar to our
-  // base artist. Results are passed to |handle_similar_artists|.
-  function request_more_artists() {
-    var current_id = base_artist_api.id;
-    var handler_wrapper = function(error, artists) {
-      handle_similar_artists(current_id, error, artists);
-    };
-
-    var results = Math.min(ARTIST_RESULTS, MAX_ARTISTS - artist_start_position);
-    var request_data = {
-      results: results,
-      start: artist_start_position,
-    };
-
-    base_artist_api.similar(request_data, handler_wrapper);
-    artist_start_position = (artist_start_position + results) % MAX_ARTISTS;
-  };
-
-  // Sets the base artist that we will return similar tracks for.
-  var set_base_artist = function(artist_id) {
+  // focal artist. Results are passed to |handle_similar_artists|.
+  var set_focal_artist = function(artist_id) {
     if (!the_nest) {
-      console.log("Echo Nest is not available:(");
+      console.log("Echo Nest is not available :(");
       return;
     }
-    similar_artist_ids = [];
-    artist_start_position = 0;
-    base_artist_api = the_nest.artist({id: artist_id});
-    request_more_artists();
+    active_request_id = artist_id;
+    focal_artist_api = the_nest.artist({id: artist_id});
+
+    var handler_wrapper = function(error, artists) {
+      handle_similar_artists(artist_id, error, artists);
+    };
+    focal_artist_api.similar({results: ARTIST_RESULTS}, handler_wrapper);
   };
 
   return {
-    set_base_artist: set_base_artist,
+    set_focal_artist: set_focal_artist,
     request_track: request_track,
   };
 }();
 
-// A grid layout of similar artists to the base artist.
-// Clicking on an artist will set the new base artist.
+// A grid layout of similar artists to the focal artist.
+// Clicking on an artist will set the new focal artist.
 echollage.display = function() {
   var WIDTH = 6;
   var HEIGHT = 4;
-  var current_playing = null;
-  var last_loaded = null;
-
+  var current_focal_cell = null;
+  var current_playing_cell = null;
+  var last_loaded_cell = null;
   var update_position = 0;
+
+  // This start up filling 'cuts off' edges of grid.
+  // Rearrange for different effects.
   var update_order = function() {
-    var shuffled = [];
-    for (i = 0; i < WIDTH * HEIGHT; i++)
-      shuffled.splice(parseInt((i + 1) * Math.random()), 0, i);
-    return shuffled;
+    var positions = [];
+    var n = 0, s = HEIGHT, e = WIDTH, w = 0;
+
+    while (n < s && e > w) {
+      // South side.
+      for (c = e - 1; c >= w; --c)
+        positions.push((s - 1) * WIDTH + c);
+      s--;
+      // North side.
+      for (c = w; c < e; ++c)
+        positions.push(n * WIDTH + c);
+      n++;
+      // East side.
+      for (r = n; r < s; ++r)
+        positions.push(r * WIDTH + (e - 1));
+      e--;
+      // West side.
+      for (r = s - 1; r >= n; --r)
+        positions.push(r * WIDTH + w);
+      w++;
+    }
+    return positions;
   }();
 
-  function cell_id(position) {
+  // Returns a list of numbers 1 to n shuffled.
+  function shuffle(n) {
+    var shuffled = [];
+    for (i = 0; i < n; i++)
+      shuffled.splice(parseInt((i + 1) * Math.random()), 0, i);
+    return shuffled;
+  };
+
+  function get_cell_id(position) {
     return 'piece' + position;
+  };
+
+  function get_cell_by_position(position) {
+    return document.getElementById(get_cell_id(position));
   };
 
   var init = function() {
@@ -161,49 +173,71 @@ echollage.display = function() {
 
       for (c = 0; c < HEIGHT; ++c) {
         var cell = document.createElement('li');
-        cell.setAttribute('id', cell_id(r * HEIGHT + c));
+        cell.setAttribute('id', get_cell_id(r * HEIGHT + c));
         row.appendChild(cell);
       }
       echollage.appendChild(row);
     }
   };
 
-  function play(audio) {
-    if (current_playing)
-      current_playing.pause();
+  function get_next_cell() {
+    var cell = get_cell_by_position(update_order[update_position++]);
+    if (update_position >= update_order.length) {
+      update_order = shuffle(WIDTH * HEIGHT);
+      update_position = 0;
+    }
 
-    current_playing = audio;
-    audio.play();
-    // If we aren't getting any new songs, this will repeat the last song.
+    if (cell === current_focal_cell || cell === current_playing_cell)
+      return get_next_cell();
+    return cell;
+  };
+
+  function toggle(cell) {
+    var audio = cell.getElementsByTagName('audio')[0];
+    if (!audio) {
+      console.log("Bad audio");
+      return;
+    }
+
+    if (!audio.paused) {
+      console.log("Not paused, pausing");
+      audio.pause();
+    }
+    else {
+      console.log("Paused, playing");
+      if (current_playing_cell)
+        current_playing_cell.getElementsByTagName('audio')[0].pause();
+      audio.play();
+    }
+    current_playing_cell = cell;
+
+    // If we aren't getting any new tracks, this will repeat the last track.
     // I'll consider this a feature.
     audio.addEventListener('ended', function() {
-      play(last_loaded);
+      toggle(last_loaded_cell);
     });
   };
 
-  function cell_loaded(cell, audio, image) {
+  function new_cell_loaded(audio, image) {
+    var cell = get_next_cell();
     cell.innerHTML = '';
     cell.appendChild(image);
     cell.appendChild(audio);
 
-    last_loaded = audio;
+    last_loaded_cell = cell;
     image.onclick = function() {
-      if (audio.paused)
-        play(audio);
-      else
-        audio.pause();
+      toggle(cell);
     };
   };
 
-  function replace_cell(id, track) {
-    var cell = document.getElementById(cell_id(id));
+  var load_track = function(track) {
     var audio = new Audio()
     var image = new Image();
 
     var other_loaded = false;
     var component_loaded = function() {
       if (other_loaded)
-        cell_loaded(cell, audio, image);
+        new_cell_loaded(audio, image);
       other_loaded = true;
     };
 
@@ -213,35 +247,43 @@ echollage.display = function() {
     image.src = track.release_image;
   };
 
-  var replace_next = function(track) {
-    replace_cell(update_order[update_position], track);
-    update_position = (update_position + 1) % (WIDTH * HEIGHT);
-  };
-
   return {
     init: init,
-    replace_next: replace_next,
+    load_track: load_track,
   };
 }();
 
-// Update controller.
+// The Update controller.
+// Responsible for requesting tracks from the collector and sending results
+// to the display.
 echollage.updater = function() {
-  var REQUEST_PERIOD = 3000;
+  var START_REQUEST_PERIOD = 500;
+  var SETTLE_REQUEST_PERIOD = 3000;
+  var HALF_LIFE = 10;
+  var update_count = 0;
 
+  // Sends a valid received track to the display.
   function handle_track(track) {
     if (track)
-      echollage.display.replace_next(track);
+      echollage.display.load_track(track);
   };
 
+  // Requests a new track from the collector.
+  // Update speed trails off exponentially with half life |HALF_LIFE| from
+  // |START_REQUEST_PERIOD| to |SETTLE_REQUEST_PERIOD|.
   function update() {
     echollage.collector.request_track(handle_track);
-    setTimeout(update, REQUEST_PERIOD);
+    var decay = Math.pow(0.5, update_count / HALF_LIFE);
+    var wait = decay * START_REQUEST_PERIOD + (1 - decay) * SETTLE_REQUEST_PERIOD;
+    setTimeout(update, wait);
+    update_count++;
   };
 
+  // Init everything and start requests.
   var start = function() {
-    echollage.collector.set_base_artist('AR6XZ861187FB4CECD');
+    echollage.collector.set_focal_artist('AR6XZ861187FB4CECD');
     echollage.display.init();
-    setTimeout(update, REQUEST_PERIOD);
+    setTimeout(update, START_REQUEST_PERIOD);
   };
 
   return {
