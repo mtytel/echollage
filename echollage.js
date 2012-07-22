@@ -28,6 +28,8 @@ echollage.collector = function(focal_artist_id, ready_callback) {
       return;
     }
     var artists = results.artists;
+    console.log(focal_artist_id);
+    console.log(artists);
     for (var i = 0; i < artists.length; ++i)
       similar_artist_ids.push(artists[i].id);
     if (ready_callback)
@@ -106,7 +108,7 @@ echollage.display = function() {
     return r * WIDTH + c;
   }
 
-  // This start up filling 'cuts off' edges of grid.
+  // This is a spiral starting from the top right, traveling clockwise.
   // Rearrange for different effects.
   var update_order = function() {
     var positions = [];
@@ -197,18 +199,39 @@ echollage.display = function() {
     current_playing_cell = cell;
   }
 
+  function create_play_button() {
+    var play = document.createElement('div');
+    play.setAttribute('class', 'button play')
+    return play;
+  }
+
+  function create_star_button() {
+    var star = document.createElement('div');
+    star.setAttribute('class', 'button star')
+    return star;
+  }
+
   // Places successfully loaded audio and image on the grid and adds click
   // events.
-  function place_loaded_data(audio, image) {
+  function place_loaded_data(track, audio, image) {
     var cell = get_next_cell();
     cell.innerHTML = '';
-    cell.appendChild(image);
     cell.appendChild(audio);
+    cell.appendChild(image);
 
-    last_loaded_cell = cell;
-    image.onclick = function() {
+    var play_button = create_play_button();
+    play_button.onclick = function() {
       toggle(cell);
     };
+    cell.appendChild(play_button);
+
+    var star_button = create_star_button();
+    star_button.onclick = function() {
+      echollage.updater.set_focal_artist(track.artist_id);
+    };
+    cell.appendChild(star_button);
+
+    last_loaded_cell = cell;
   }
 
   // Accepts track data and will attempt to load the audio and image within.
@@ -220,7 +243,7 @@ echollage.display = function() {
     var other_loaded = false;
     var component_loaded = function() {
       if (other_loaded)
-        place_loaded_data(audio, image);
+        place_loaded_data(track, audio, image);
       other_loaded = true;
     };
 

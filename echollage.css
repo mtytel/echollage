@@ -10,7 +10,7 @@ body {
   background-repeat:no-repeat;
   background-position:center;
   height:800px;
-  width:1220px;
+  width:1200px;
   margin:0 auto;
 }
 
@@ -25,23 +25,47 @@ body {
 
 #echollage li {
   -webkit-box-flex:1;
-  text-align:center;
   width:200px;
   height:200px;
   margin:0;
   padding:0;
+  position:relative;
+  display:block;
   float:left;
 }
 
-/*#echollage span.play-button {
+div.button {
+  background-repeat:no-repeat;
+  background-position:center;
   visibility:hidden;
   position:absolute;
   filter:alpha(opacity=50);
   -moz-opacity:0.5;
   -khtml-opacity: 0.5;
   opacity: 0.5;
+  height:100px;
+  width:100px;
 }
 
-a.gallerypic:hover span.play-button {
+#echollage li:hover div.button {
   visibility:visible;
-}*/
+}
+
+div.button:hover {
+  filter:alpha(opacity=90);
+  -moz-opacity:0.9;
+  -khtml-opacity: 0.9;
+  opacity: 0.9;
+}
+
+div.play {
+  background-image:url(play.png);
+  left:0%;
+  top:50%;
+}
+
+div.star {
+  background-image:url(star.png);
+  left:50%;
+  top:50%;
+}
