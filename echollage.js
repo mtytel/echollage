@@ -3,20 +3,36 @@
 // Author: Matthew Tytel
 
 var echollage = {};
+echollage.nest = nest.nest('UPLO3CALHCEZKZTTA');
 
 // A nest.js wrapper to find similar tracks to a given focal artist.
-// Set the focal artist using set_focal_artist.
 // Call request_track to get track information from an artist similar to the
 // focal artist.
-echollage.collector = function() {
-  var the_nest = nest.nest('UPLO3CALHCEZKZTTA');
+echollage.collector = function(focal_artist_id, ready_callback) {
+  if (!echollage.nest) {
+    console.log("Echo Nest is not available :(");
+    return;
+  }
 
   var similar_artist_ids = [];
-  var active_request_id = null;
-
   var TRACKS_RESULTS = 30;
   var ARTIST_RESULTS = 100;
   var artist_position = 0;
+
+  // Make a request to the Echo Nest server for artists similar to our
+  // focal artist. Result ids are stored and the ready callback is ran.
+  var focal_artist_api = echollage.nest.artist({id: focal_artist_id});
+  focal_artist_api.similar({results: ARTIST_RESULTS}, function(error, results) {
+    if (error || results.artists.length === 0) {
+      console.log('Similar artists request failed: ' + error);
+      return;
+    }
+    var artists = results.artists;
+    for (var i = 0; i < artists.length; ++i)
+      similar_artist_ids.push(artists[i].id);
+    if (ready_callback)
+      ready_callback();
+  });
 
   // Selects a track containing a |preview_url| and a |release_image| from
   // the Echo Nest track search results and returns them with the |artist_id|
@@ -43,10 +59,10 @@ echollage.collector = function() {
     return null;
   }
 
-  // Makes request to the Echo Nest server requesting tracks for a queued
-  // similar artist and returns a track object selected by |select_track|.
+  // Makes request to the Echo Nest server for tracks of a similar artist
+  // and returns a track object selected by |select_track|.
   var request_track = function(track_callback) {
-    if (!the_nest || similar_artist_ids.length === 0) {
+    if (similar_artist_ids.length === 0) {
       console.log("The Echo Nest hasn't reponded :(");
       return;
     }
@@ -67,49 +83,13 @@ echollage.collector = function() {
       results: TRACKS_RESULTS,
       bucket: ['id:7digital-US', 'tracks']
     };
-    the_nest.searchSongs(request_data, handle_tracks);
-  };
-
-  // Appends received artist ids to the similar artist queue.
-  // Throws away old results because we don't want to actively return tracks
-  // for the wrong artist.
-  function handle_similar_artists(response_artist_id, error, results) {
-    if (error) {
-      console.log('Similar artists request failed: ' + error);
-      return;
-    }
-    if (response_artist_id != active_request_id) {
-      console.log('Received old similar artist results. Ignoring..');
-      return;
-    }
-
-    similar_artist_ids = [];
-    var artists = results.artists;
-    for (var i = 0; i < artists.length; ++i)
-      similar_artist_ids.push(artists[i].id);
-  }
-
-  // Makes request to the Echo Nest server requesting artists similar to our
-  // focal artist. Results are passed to |handle_similar_artists|.
-  var set_focal_artist = function(artist_id) {
-    if (!the_nest) {
-      console.log("Echo Nest is not available :(");
-      return;
-    }
-    active_request_id = artist_id;
-    var focal_artist_api = the_nest.artist({id: artist_id});
-
-    var handler_wrapper = function(error, artists) {
-      handle_similar_artists(artist_id, error, artists);
-    };
-    focal_artist_api.similar({results: ARTIST_RESULTS}, handler_wrapper);
+    echollage.nest.searchSongs(request_data, handle_tracks);
   };
 
   return {
-    set_focal_artist: set_focal_artist,
     request_track: request_track
   };
-}();
+}
 
 // A grid layout of similar artists to the focal artist.
 // Clicking on an artist will set the new focal artist.
@@ -132,22 +112,22 @@ echollage.display = function() {
     var positions = [];
     var north = 0, south = HEIGHT, east = WIDTH, west = 0, r = 0, c = 0;
     while (north < south && east > west) {
-      // South side.
-      for (c = east - 1; c >= west; --c)
-        positions.push(compute_position(south - 1, c));
-      south--;
-      // North side.
-      for (c = west; c < east; ++c)
-        positions.push(compute_position(north, c));
-      north++;
       // East side.
       for (r = north; r < south; ++r)
         positions.push(compute_position(r, east - 1));
       east--;
+      // South side.
+      for (c = east - 1; c >= west; --c)
+        positions.push(compute_position(south - 1, c));
+      south--;
       // West side.
       for (r = south - 1; r >= north; --r)
         positions.push(compute_position(r, west));
       west++;
+      // North side.
+      for (c = west; c < east; ++c)
+        positions.push(compute_position(north, c));
+      north++;
     }
     return positions;
   }();
@@ -160,14 +140,17 @@ echollage.display = function() {
     return shuffled;
   }
 
+  // Gets cell id for DOM.
   function get_cell_id(position) {
     return 'piece' + position;
   }
 
+  // Returns DOM node for cell positions.
   function get_cell_by_position(position) {
     return document.getElementById(get_cell_id(position));
   }
 
+  // Sets up the base html to load images and audio into.
   var init = function() {
     var echollage_dom = document.getElementById('echollage');
     echollage_dom.innerHTML = '';
@@ -184,6 +167,7 @@ echollage.display = function() {
     }
   };
 
+  // Returns the cell DOM node to replace next.
   function get_next_cell() {
     var cell = get_cell_by_position(update_order[update_position]);
     update_position++;
@@ -197,6 +181,7 @@ echollage.display = function() {
     return cell;
   }
 
+  // Will switch the audio in a cellfrom playing to paused and vice versa.
   function toggle(cell) {
     var audio = cell.getElementsByTagName('audio')[0];
     if (!audio)
@@ -212,7 +197,9 @@ echollage.display = function() {
     current_playing_cell = cell;
   }
 
-  function new_cell_loaded(audio, image) {
+  // Places successfully loaded audio and image on the grid and adds click
+  // events.
+  function place_loaded_data(audio, image) {
     var cell = get_next_cell();
     cell.innerHTML = '';
     cell.appendChild(image);
@@ -224,6 +211,8 @@ echollage.display = function() {
     };
   }
 
+  // Accepts track data and will attempt to load the audio and image within.
+  // If it succeeds, we will place the image on the grid.
   var place_track = function(track) {
     var audio = new Audio();
     var image = new Image();
@@ -231,7 +220,7 @@ echollage.display = function() {
     var other_loaded = false;
     var component_loaded = function() {
       if (other_loaded)
-        new_cell_loaded(audio, image);
+        place_loaded_data(audio, image);
       other_loaded = true;
     };
 
@@ -253,14 +242,28 @@ echollage.display = function() {
   };
 }();
 
+// Computes discrete exponential decays from one value to another.
+// Value converges using |half_life|.
+echollage.exponential_decay = function(from, to, half_life) {
+  var count = 0;
+  var next = function() {
+    var decay = Math.pow(0.5, count / half_life);
+    count++;
+    return decay * from + (1 - decay) * to;
+  };
+
+  return {
+    next: next
+  };
+};
+
 // The Update controller.
 // Responsible for requesting tracks from the collector and sending results
 // to the display.
 echollage.updater = function() {
-  var START_REQUEST_PERIOD = 500;
-  var SETTLE_REQUEST_PERIOD = 3000;
-  var HALF_LIFE = 10;
-  var update_count = 0;
+  var update_period = echollage.exponential_decay(500, 3000, 10);
+  var update_timeout = null;
+  var collector = null;
 
   // Sends a valid received track to the display.
   function handle_track(track) {
@@ -269,25 +272,33 @@ echollage.updater = function() {
   }
 
   // Requests a new track from the collector.
-  // Update speed trails off exponentially with half life |HALF_LIFE| from
-  // |START_REQUEST_PERIOD| to |SETTLE_REQUEST_PERIOD|.
   function update() {
-    echollage.collector.request_track(handle_track);
-    var decay = Math.pow(0.5, update_count / HALF_LIFE);
-    var wait = decay * START_REQUEST_PERIOD +
-               (1 - decay) * SETTLE_REQUEST_PERIOD;
-    setTimeout(update, wait);
-    update_count++;
+    collector.request_track(handle_track);
+    update_timeout = setTimeout(update, update_period.next());
   }
+
+  // Sets up a new Echo Nest collector for the new artist.
+  // Cancels any updates because we need to wait for the new artists.
+  var set_focal_artist = function(focal_artist_id) {
+    if (update_timeout)
+      clearTimeout(update_timeout);
+    collector = echollage.collector(focal_artist_id, update);
+  };
 
   // Init everything and start requests.
   var start = function() {
-    echollage.collector.set_focal_artist('AR6XZ861187FB4CECD');
+    var other_ready = true;
+    function component_ready() {
+      if (other_ready)
+        update();
+      other_ready = true;
+    }
+    collector = echollage.collector('AR6XZ861187FB4CECD', component_ready);
     echollage.display.init();
-    setTimeout(update, START_REQUEST_PERIOD);
   };
 
   return {
+    set_focal_artist: set_focal_artist,
     start: start
   };
 }();

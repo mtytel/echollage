@@ -11,6 +11,7 @@ body {
   background-position:center;
   height:800px;
   width:1220px;
+  margin:0 auto;
 }
 
 #echollage ul {
@@ -31,3 +32,16 @@ body {
   padding:0;
   float:left;
 }
+
+/*#echollage span.play-button {
+  visibility:hidden;
+  position:absolute;
+  filter:alpha(opacity=50);
+  -moz-opacity:0.5;
+  -khtml-opacity: 0.5;
+  opacity: 0.5;
+}
+
+a.gallerypic:hover span.play-button {
+  visibility:visible;
+}*/
