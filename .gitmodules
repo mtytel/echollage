@@ -1,3 +1,6 @@
 [submodule "nestjs"]
 	path = nestjs
 	url = git://github.com/echonest/nestjs.git
+[submodule "SoundManager2"]
+	path = SoundManager2
+	url = git://github.com/scottschiller/SoundManager2.git

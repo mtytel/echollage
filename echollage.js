@@ -215,12 +215,6 @@ echollage.display = function() {
       audio.play();
     }
     current_playing_cell = cell;
-
-    // If we aren't getting any new tracks, this will repeat the last track.
-    // I'll consider this a feature.
-    audio.addEventListener('ended', function() {
-      toggle(last_loaded_cell);
-    });
   }
 
   function new_cell_loaded(audio, image) {
@@ -235,7 +229,7 @@ echollage.display = function() {
     };
   }
 
-  var load_track = function(track) {
+  var place_track = function(track) {
     var audio = new Audio();
     var image = new Image();
 
@@ -250,11 +244,17 @@ echollage.display = function() {
     image.onload = component_loaded;
     audio.src = track.preview_url;
     image.src = track.release_image;
+
+    // If we aren't getting any new tracks, this will repeat the last track.
+    // I'll consider this a feature.
+    audio.addEventListener('ended', function() {
+      toggle(last_loaded_cell);
+    });
   };
 
   return {
     init: init,
-    load_track: load_track
+    place_track: place_track
   };
 }();
 
@@ -270,7 +270,7 @@ echollage.updater = function() {
   // Sends a valid received track to the display.
   function handle_track(track) {
     if (track)
-      echollage.display.load_track(track);
+      echollage.display.place_track(track);
   }
 
   // Requests a new track from the collector.
@@ -279,7 +279,8 @@ echollage.updater = function() {
   function update() {
     echollage.collector.request_track(handle_track);
     var decay = Math.pow(0.5, update_count / HALF_LIFE);
-    var wait = decay * START_REQUEST_PERIOD + (1 - decay) * SETTLE_REQUEST_PERIOD;
+    var wait = decay * START_REQUEST_PERIOD +
+               (1 - decay) * SETTLE_REQUEST_PERIOD;
     setTimeout(update, wait);
     update_count++;
   }
