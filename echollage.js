@@ -199,17 +199,12 @@ echollage.display = function() {
 
   function toggle(cell) {
     var audio = cell.getElementsByTagName('audio')[0];
-    if (!audio) {
-      console.log("Bad audio");
+    if (!audio)
       return;
-    }
 
-    if (!audio.paused) {
-      console.log("Not paused, pausing");
+    if (!audio.paused)
       audio.pause();
-    }
     else {
-      console.log("Paused, playing");
       if (current_playing_cell)
         current_playing_cell.getElementsByTagName('audio')[0].pause();
       audio.play();
