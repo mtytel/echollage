@@ -11,7 +11,7 @@ echollage.nest = nest.nest('UPLO3CALHCEZKZTTA');
 echollage.collector = function(focal_artist_id, ready_callback) {
   if (!echollage.nest) {
     console.log("Echo Nest is not available :(");
-    return;
+    return null;
   }
 
   var similar_artist_ids = [];
@@ -91,7 +91,7 @@ echollage.collector = function(focal_artist_id, ready_callback) {
   return {
     request_track: request_track
   };
-}
+};
 
 // A grid layout of similar artists to the focal artist.
 // Clicking on an artist will set the new focal artist.
@@ -201,13 +201,13 @@ echollage.display = function() {
 
   function create_play_button() {
     var play = document.createElement('div');
-    play.setAttribute('class', 'button play')
+    play.setAttribute('class', 'button play');
     return play;
   }
 
   function create_star_button() {
     var star = document.createElement('div');
-    star.setAttribute('class', 'button star')
+    star.setAttribute('class', 'button star');
     return star;
   }
 
@@ -227,6 +227,7 @@ echollage.display = function() {
 
     var star_button = create_star_button();
     star_button.onclick = function() {
+      current_focal_cell = cell;
       echollage.updater.set_focal_artist(track.artist_id);
     };
     cell.appendChild(star_button);
