@@ -28,8 +28,6 @@ echollage.collector = function(focal_artist_id, ready_callback) {
       return;
     }
     var artists = results.artists;
-    console.log(focal_artist_id);
-    console.log(artists);
     for (var i = 0; i < artists.length; ++i)
       similar_artist_ids.push(artists[i].id);
     if (ready_callback)
@@ -205,12 +203,6 @@ echollage.display = function() {
     return play;
   }
 
-  function create_star_button() {
-    var star = document.createElement('div');
-    star.setAttribute('class', 'button star');
-    return star;
-  }
-
   // Places successfully loaded audio and image on the grid and adds click
   // events.
   function place_loaded_data(track, audio, image) {
@@ -222,16 +214,9 @@ echollage.display = function() {
     var play_button = create_play_button();
     play_button.onclick = function() {
       toggle(cell);
-    };
-    cell.appendChild(play_button);
-
-    var star_button = create_star_button();
-    star_button.onclick = function() {
-      current_focal_cell = cell;
       echollage.updater.set_focal_artist(track.artist_id);
     };
-    cell.appendChild(star_button);
-
+    cell.appendChild(play_button);
     last_loaded_cell = cell;
   }
 

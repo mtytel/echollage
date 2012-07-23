@@ -34,17 +34,24 @@ body {
   float:left;
 }
 
+#echollage img {
+  width:200px;
+  height:200px;
+  padding:0;
+  margin:0;
+}
+
 div.button {
   background-repeat:no-repeat;
   background-position:center;
   visibility:hidden;
   position:absolute;
   filter:alpha(opacity=50);
-  -moz-opacity:0.5;
-  -khtml-opacity: 0.5;
-  opacity: 0.5;
-  height:100px;
-  width:100px;
+  -moz-opacity:0.2;
+  -khtml-opacity: 0.2;
+  opacity: 0.2;
+  height:50px;
+  width:200px;
 }
 
 #echollage li:hover div.button {
@@ -53,19 +60,13 @@ div.button {
 
 div.button:hover {
   filter:alpha(opacity=90);
-  -moz-opacity:0.9;
-  -khtml-opacity: 0.9;
-  opacity: 0.9;
+  -moz-opacity:0.6;
+  -khtml-opacity: 0.6;
+  opacity: 0.6;
 }
 
 div.play {
   background-image:url(static/images/play.png);
   left:0%;
-  top:50%;
-}
-
-div.star {
-  background-image:url(static/images/star.png);
-  left:50%;
-  top:50%;
+  bottom:0%;
 }
