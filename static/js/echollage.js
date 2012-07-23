@@ -38,7 +38,6 @@ echollage.collector = function(focal_artist_id, ready_callback) {
   // the Echo Nest track search results and returns them with the |artist_id|
   // and |artist_name|. If no valid tracks are found, returns null.
   function select_track(tracks) {
-    console.log(tracks);
     while (tracks.length != 0) {
       var random_index = parseInt(Math.random() * tracks.length, 10);
       var track_info = tracks[random_index];
