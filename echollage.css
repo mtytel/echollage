@@ -6,7 +6,7 @@ body {
 }
 
 #echollage {
-  background-image:url(backdrop.png);
+  background-image:url(static/images/backdrop.png);
   background-repeat:no-repeat;
   background-position:center;
   height:800px;
@@ -59,13 +59,13 @@ div.button:hover {
 }
 
 div.play {
-  background-image:url(play.png);
+  background-image:url(static/images/play.png);
   left:0%;
   top:50%;
 }
 
 div.star {
-  background-image:url(star.png);
+  background-image:url(static/images/star.png);
   left:50%;
   top:50%;
 }
