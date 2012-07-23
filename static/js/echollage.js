@@ -24,7 +24,7 @@ echollage.collector = function(focal_artist_id, ready_callback) {
   var focal_artist_api = echollage.nest.artist({id: focal_artist_id});
   focal_artist_api.similar({results: ARTIST_RESULTS}, function(error, results) {
     if (error || results.artists.length === 0) {
-      console.log('Similar artists request failed: ' + error);
+      console.log("Similar artists request failed: " + error);
       return;
     }
     var artists = results.artists;
@@ -38,6 +38,7 @@ echollage.collector = function(focal_artist_id, ready_callback) {
   // the Echo Nest track search results and returns them with the |artist_id|
   // and |artist_name|. If no valid tracks are found, returns null.
   function select_track(tracks) {
+    console.log(tracks);
     while (tracks.length != 0) {
       var random_index = parseInt(Math.random() * tracks.length, 10);
       var track_info = tracks[random_index];
@@ -47,6 +48,7 @@ echollage.collector = function(focal_artist_id, ready_callback) {
 
         if (track.preview_url && track.release_image) {
           return {
+            title: track_info.title,
             artist_id: track_info.artist_id,
             artist_name: track_info.artist_name,
             preview_url: track.preview_url,
@@ -69,7 +71,7 @@ echollage.collector = function(focal_artist_id, ready_callback) {
 
     var handle_tracks = function(error, tracks) {
       if (error) {
-        console.log('Tracks request failed: ' + error);
+        console.log("Tracks request failed: " + error);
         return;
       }
       track_callback(select_track(tracks));
@@ -199,8 +201,22 @@ echollage.display = function() {
 
   function create_play_button() {
     var play = document.createElement('div');
-    play.setAttribute('class', 'button play');
+    play.setAttribute('class', 'overlay play');
     return play;
+  }
+
+  function create_track_info_box(track_data) {
+    var track_info = document.createElement('div');
+    track_info.setAttribute('class', 'overlay track-info');
+
+    var artist_name = document.createElement('p');
+    artist_name.textContent = track_data.artist_name;
+    track_info.appendChild(artist_name);
+
+    var track_title = document.createElement('p');
+    track_title.textContent = track_data.title;
+    track_info.appendChild(track_title);
+    return track_info;
   }
 
   // Places successfully loaded audio and image on the grid and adds click
@@ -210,6 +226,8 @@ echollage.display = function() {
     cell.innerHTML = '';
     cell.appendChild(audio);
     cell.appendChild(image);
+
+    cell.appendChild(create_track_info_box(track));
 
     var play_button = create_play_button();
     play_button.onclick = function() {
