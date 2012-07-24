@@ -5,19 +5,6 @@
 var echollage = {};
 echollage.nest = nest.nest('UPLO3CALHCEZKZTTA');
 
-soundManager.setup({
-  url: 'SoundManager2/swf/',
-  onready: function() { },
-});
-// Creates a function where when called |number| times, will call |callback|.
-echollage.on_multiple_ready = function(number, callback) {
-  return function() {
-    number--;
-    if (number <= 0)
-      callback();
-  };
-};
-
 // A nest.js wrapper to find similar tracks to a given focal artist.
 // Call request_track to get track information from an artist similar to the
 // focal artist.
@@ -60,6 +47,7 @@ echollage.collector = function(focal_artist_id, ready_callback) {
 
         if (track.preview_url && track.release_image) {
           return {
+            id: track_info.id,
             title: track_info.title,
             artist_id: track_info.artist_id,
             artist_name: track_info.artist_name,
@@ -198,34 +186,32 @@ echollage.display = function() {
     return cell;
   }
 
+  function play(cell) {
+    console.log("playing");
+    if (cell !== current_active_cell)
+      echollage.updater.set_focal_artist(cell.getAttribute('artist_id'));
+
+    if (current_active_cell)
+      soundManager.pause(current_active_cell.getAttribute('track_id'));
+    soundManager.play(cell.getAttribute('track_id'));
+    current_active_cell = cell;
+  }
+
   // Will switch the audio in a cell from playing to paused and vice versa.
   // If a new cell was clicked on, we will ask the updater to look for artists
   // similar to the on clicked on.
   function toggle(cell) {
-    var audio = cell.getElementsByTagName('audio')[0];
-
-    if (!audio.paused) {
+    var audio = soundManager.getSoundById(cell.getAttribute('track_id'));
+    if (!audio.playState)
+      play(cell);
+    else
       audio.pause();
-      cell.getElementsByClassName('border')[0].style.visibility = 'hidden';
-    }
-    else {
-      if (cell !== current_active_cell) {
-        var artist_id = cell.getAttribute('artist_id');
-        echollage.updater.set_focal_artist(artist_id);
-      }
-      if (current_active_cell)
-        current_active_cell.getElementsByTagName('audio')[0].pause();
-
-      audio.play();
-      current_active_cell = cell;
-      cell.getElementsByClassName('border')[0].style.visibility = 'visible';
-    }
   }
 
   function create_play_button() {
-    var play = document.createElement('div');
-    play.setAttribute('class', 'overlay play');
-    return play;
+    var play_button = document.createElement('div');
+    play_button.setAttribute('class', 'overlay play');
+    return play_button;
   }
 
   function create_active_border() {
@@ -250,11 +236,12 @@ echollage.display = function() {
 
   // Places successfully loaded audio and image on the grid and adds click
   // events.
-  function place_loaded_data(track, audio, image) {
+  function place_loaded_data(track, image) {
     var cell = get_next_cell();
     cell.innerHTML = '';
     cell.setAttribute('artist_id', track.artist_id);
-    cell.appendChild(audio);
+    cell.setAttribute('track_id', track.id);
+
     cell.appendChild(image);
     cell.appendChild(create_active_border());
     cell.appendChild(create_track_info_box(track));
@@ -274,21 +261,22 @@ echollage.display = function() {
   // Accepts track data and will attempt to load the audio and image within.
   // If it succeeds, we will place the image on the grid.
   var place_track = function(track) {
-    var audio = new Audio();
     var image = new Image();
-
-    var other_loaded = false;
     var on_media_ready = echollage.on_multiple_ready(2, function() {
-      place_loaded_data(track, audio, image);
+      place_loaded_data(track, image);
     });
 
     image.src = track.release_image;
     image.onload = on_media_ready;
-    audio.src = track.preview_url;
-    audio.addEventListener('canplaythrough', on_media_ready);
 
-    audio.addEventListener('ended', function() {
-      toggle(last_loaded_cell);
+    soundManager.createSound({
+      id: track.id,
+      url: track.preview_url,
+      autoLoad: true,
+      onload: on_media_ready,
+      onfinish: function() {
+        play(last_loaded_cell);
+      }
     });
   };
 
@@ -341,10 +329,10 @@ echollage.updater = function() {
     collector = echollage.collector(focal_artist_id, update);
   };
 
-  // Init everything and start requests.
+  // Init the collector and display.
+  // When the collector is ready, start updates.
   var start = function() {
-    var on_ready = echollage.on_multiple_ready(1, update);
-    collector = echollage.collector('AR6XZ861187FB4CECD', on_ready);
+    collector = echollage.collector('AR6XZ861187FB4CECD', update);
     echollage.display.init();
   };
 
@@ -354,4 +342,20 @@ echollage.updater = function() {
   };
 }();
 
-window.onload = echollage.updater.start;
+// Creates a function where when called |number| times, will call |callback|.
+echollage.on_multiple_ready = function(number, callback) {
+  return function() {
+    number--;
+    if (number === 0)
+      callback();
+  };
+};
+
+// Once the soundManager and the window load, call updater.start.
+echollage.ready = echollage.on_multiple_ready(2, echollage.updater.start);
+
+soundManager.setup({
+  url: '/static/SoundManager2/swf/',
+  onready: echollage.ready
+});
+window.onload = echollage.ready;
