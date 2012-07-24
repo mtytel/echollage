@@ -1,9 +1,22 @@
 // Echollage - The Ech(o Nest C)ollage
 // A dynamic grid of artist images and tracks developed using the Echo Nest API.
-// Author: Matthew Tytel
+// Written by Matthew Tytel in Linnaea's Cafe, San Luis Obispo, CA.
 
 var echollage = {};
 echollage.nest = nest.nest('UPLO3CALHCEZKZTTA');
+
+soundManager.setup({
+  url: 'SoundManager2/swf/',
+  onready: function() { },
+});
+// Creates a function where when called |number| times, will call |callback|.
+echollage.on_multiple_ready = function(number, callback) {
+  return function() {
+    number--;
+    if (number <= 0)
+      callback();
+  };
+};
 
 // A nest.js wrapper to find similar tracks to a given focal artist.
 // Call request_track to get track information from an artist similar to the
@@ -98,7 +111,8 @@ echollage.display = function() {
   var WIDTH = 6;
   var HEIGHT = 4;
   var current_focal_cell = null;
-  var current_playing_cell = null;
+  var current_active_cell = null;
+  var current_hovering_cell = null;
   var last_loaded_cell = null;
   var update_position = 0;
 
@@ -177,31 +191,47 @@ echollage.display = function() {
       update_position = 0;
     }
 
-    if (cell === current_focal_cell || cell === current_playing_cell)
+    if (cell === current_focal_cell || cell === current_active_cell ||
+        cell === current_hovering_cell) {
       return get_next_cell();
+    }
     return cell;
   }
 
-  // Will switch the audio in a cellfrom playing to paused and vice versa.
+  // Will switch the audio in a cell from playing to paused and vice versa.
+  // If a new cell was clicked on, we will ask the updater to look for artists
+  // similar to the on clicked on.
   function toggle(cell) {
     var audio = cell.getElementsByTagName('audio')[0];
-    if (!audio)
-      return;
 
-    if (!audio.paused)
+    if (!audio.paused) {
       audio.pause();
-    else {
-      if (current_playing_cell)
-        current_playing_cell.getElementsByTagName('audio')[0].pause();
-      audio.play();
+      cell.getElementsByClassName('border')[0].style.visibility = 'hidden';
     }
-    current_playing_cell = cell;
+    else {
+      if (cell !== current_active_cell) {
+        var artist_id = cell.getAttribute('artist_id');
+        echollage.updater.set_focal_artist(artist_id);
+      }
+      if (current_active_cell)
+        current_active_cell.getElementsByTagName('audio')[0].pause();
+
+      audio.play();
+      current_active_cell = cell;
+      cell.getElementsByClassName('border')[0].style.visibility = 'visible';
+    }
   }
 
   function create_play_button() {
     var play = document.createElement('div');
     play.setAttribute('class', 'overlay play');
     return play;
+  }
+
+  function create_active_border() {
+    var active_border = document.createElement('div');
+    active_border.setAttribute('class', 'border');
+    return active_border;
   }
 
   function create_track_info_box(track_data) {
@@ -223,15 +253,19 @@ echollage.display = function() {
   function place_loaded_data(track, audio, image) {
     var cell = get_next_cell();
     cell.innerHTML = '';
+    cell.setAttribute('artist_id', track.artist_id);
     cell.appendChild(audio);
     cell.appendChild(image);
-
+    cell.appendChild(create_active_border());
     cell.appendChild(create_track_info_box(track));
+
+    image.onmouseover = function() {
+      current_hovering_cell = cell;
+    };
 
     var play_button = create_play_button();
     play_button.onclick = function() {
       toggle(cell);
-      echollage.updater.set_focal_artist(track.artist_id);
     };
     cell.appendChild(play_button);
     last_loaded_cell = cell;
@@ -244,19 +278,15 @@ echollage.display = function() {
     var image = new Image();
 
     var other_loaded = false;
-    var component_loaded = function() {
-      if (other_loaded)
-        place_loaded_data(track, audio, image);
-      other_loaded = true;
-    };
+    var on_media_ready = echollage.on_multiple_ready(2, function() {
+      place_loaded_data(track, audio, image);
+    });
 
-    audio.addEventListener('canplaythrough', component_loaded);
-    image.onload = component_loaded;
-    audio.src = track.preview_url;
     image.src = track.release_image;
+    image.onload = on_media_ready;
+    audio.src = track.preview_url;
+    audio.addEventListener('canplaythrough', on_media_ready);
 
-    // If we aren't getting any new tracks, this will repeat the last track.
-    // I'll consider this a feature.
     audio.addEventListener('ended', function() {
       toggle(last_loaded_cell);
     });
@@ -313,13 +343,8 @@ echollage.updater = function() {
 
   // Init everything and start requests.
   var start = function() {
-    var other_ready = true;
-    function component_ready() {
-      if (other_ready)
-        update();
-      other_ready = true;
-    }
-    collector = echollage.collector('AR6XZ861187FB4CECD', component_ready);
+    var on_ready = echollage.on_multiple_ready(1, update);
+    collector = echollage.collector('AR6XZ861187FB4CECD', on_ready);
     echollage.display.init();
   };
 

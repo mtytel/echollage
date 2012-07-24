@@ -9,7 +9,7 @@ body {
 }
 
 #echollage {
-  background-image:url(static/images/backdrop.png);
+  background-image:url(images/backdrop.png);
   background-repeat:no-repeat;
   background-position:center;
   height:800px;
@@ -74,18 +74,34 @@ body {
 #echollage div.play {
   background-repeat:no-repeat;
   background-position:center;
-  background-image:url(static/images/play.png);
+  background-image:url(images/play.png);
   left:0%;
   bottom:0%;
   height:50px;
   width:200px;
 }
 
+#echollage div.border {
+  visibility:hidden;
+  position:absolute;
+  background-repeat:no-repeat;
+  background-position:center;
+  background-image:url(images/playing_border.png);
+  left:-5px;
+  top:-5px;
+  height:210px;
+  width:210px;
+  filter:alpha(opacity=60);
+  -moz-opacity:0.6;
+  -khtml-opacity: 0.6;
+  opacity: 0.6;
+}
+
 #echollage div.track-info {
   background-color:black;
   color:white;
   width:200px;
-  -moz-border-radius:4px;
+  -moz-border-radius:5px;
   border-radius:5px;
   left:0%;
   top:0%;
