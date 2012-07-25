@@ -355,7 +355,7 @@ echollage.on_multiple_ready = function(number, callback) {
 echollage.ready = echollage.on_multiple_ready(2, echollage.updater.start);
 
 soundManager.setup({
-  url: '/static/SoundManager2/swf/',
+  url: '/SoundManager2/swf/',
   onready: echollage.ready
 });
 window.onload = echollage.ready;

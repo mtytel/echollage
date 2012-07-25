@@ -9,7 +9,7 @@ body {
 }
 
 #echollage {
-  background-image:url(images/backdrop.png);
+  background-image:url(/static/images/backdrop.png);
   background-repeat:no-repeat;
   background-position:center;
   height:800px;
@@ -74,7 +74,7 @@ body {
 #echollage div.play {
   background-repeat:no-repeat;
   background-position:center;
-  background-image:url(images/play.png);
+  background-image:url(/static/images/play.png);
   left:0%;
   bottom:0%;
   height:50px;
@@ -86,7 +86,7 @@ body {
   position:absolute;
   background-repeat:no-repeat;
   background-position:center;
-  background-image:url(images/playing_border.png);
+  background-image:url(/static/images/playing_border.png);
   left:-5px;
   top:-5px;
   height:210px;
