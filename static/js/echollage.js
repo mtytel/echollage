@@ -5,6 +5,15 @@
 var echollage = {};
 echollage.nest = nest.nest('UPLO3CALHCEZKZTTA');
 
+// Creates a function where when called |number| times, will call |callback|.
+echollage.on_multiple_ready = function(number, callback) {
+  return function() {
+    number--;
+    if (number === 0)
+      callback();
+  };
+};
+
 // A nest.js wrapper to find similar tracks to a given focal artist.
 // Call request_track to get track information from an artist similar to the
 // focal artist.
@@ -93,9 +102,11 @@ echollage.collector = function(focal_artist_id, ready_callback) {
   };
 };
 
+
+
 // A grid layout of similar artists to the focal artist.
 // Clicking on an artist will set the new focal artist.
-echollage.display = function() {
+echollage.grid_display = function() {
   var WIDTH = 6;
   var HEIGHT = 4;
   var current_focal_cell = null;
@@ -187,25 +198,32 @@ echollage.display = function() {
   }
 
   function play(cell) {
-    console.log("playing");
     if (cell !== current_active_cell)
-      echollage.updater.set_focal_artist(cell.getAttribute('artist_id'));
+      echollage.controller.set_focal_artist(cell.getAttribute('artist_id'));
 
     if (current_active_cell)
-      soundManager.pause(current_active_cell.getAttribute('track_id'));
+      pause(current_active_cell);
     soundManager.play(cell.getAttribute('track_id'));
     current_active_cell = cell;
+    cell.getElementsByClassName('border')[0].style.visibility = 'visible';
+    cell.getElementsByClassName('play')[0].classList.add('playing');
+  }
+
+  function pause(cell) {
+    soundManager.pause(cell.getAttribute('track_id'));
+    cell.getElementsByClassName('border')[0].style.visibility = 'hidden';
+    cell.getElementsByClassName('play')[0].classList.remove('playing');
   }
 
   // Will switch the audio in a cell from playing to paused and vice versa.
-  // If a new cell was clicked on, we will ask the updater to look for artists
-  // similar to the on clicked on.
+  // If a new cell was clicked on, we will ask the controller to look for
+  // artists similar to the on clicked on.
   function toggle(cell) {
     var audio = soundManager.getSoundById(cell.getAttribute('track_id'));
-    if (!audio.playState)
+    if (audio.playState === 0 || audio.paused)
       play(cell);
     else
-      audio.pause();
+      pause(cell);
   }
 
   function create_play_button() {
@@ -273,7 +291,10 @@ echollage.display = function() {
       id: track.id,
       url: track.preview_url,
       autoLoad: true,
-      onload: on_media_ready,
+      onload: function(success) {
+        if (success)
+          on_media_ready();
+      },
       onfinish: function() {
         play(last_loaded_cell);
       }
@@ -303,16 +324,17 @@ echollage.exponential_decay = function(from, to, half_life) {
 
 // The Update controller.
 // Responsible for requesting tracks from the collector and sending results
-// to the display.
-echollage.updater = function() {
-  var update_period = echollage.exponential_decay(500, 3000, 10);
+// to the grid_display. Also sets up an initial display to get the focal artist
+// from the user.
+echollage.controller = function() {
+  var update_period = echollage.exponential_decay(500, 4000, 10);
   var update_timeout = null;
   var collector = null;
 
-  // Sends a valid received track to the display.
+  // Sends a valid received track to the grid_display.
   function handle_track(track) {
     if (track)
-      echollage.display.place_track(track);
+      echollage.grid_display.place_track(track);
   }
 
   // Requests a new track from the collector.
@@ -329,12 +351,12 @@ echollage.updater = function() {
     collector = echollage.collector(focal_artist_id, update);
   };
 
-  // Init the collector and display.
+  // Init the display and collector with the received |artist_id|.
   // When the collector is ready, start updates.
-  var start = function() {
-    collector = echollage.collector('AR6XZ861187FB4CECD', update);
-    echollage.display.init();
-  };
+  function start(artist_id) {
+    collector = echollage.collector(artist_id, update);
+    echollage.grid_display.init();
+  }
 
   return {
     set_focal_artist: set_focal_artist,
@@ -342,17 +364,39 @@ echollage.updater = function() {
   };
 }();
 
-// Creates a function where when called |number| times, will call |callback|.
-echollage.on_multiple_ready = function(number, callback) {
-  return function() {
-    number--;
-    if (number === 0)
-      callback();
-  };
-};
+echollage.startup = function() {
+  var TEXT_FADE_OUT = 200;
 
-// Once the soundManager and the window load, call updater.start.
-echollage.ready = echollage.on_multiple_ready(2, echollage.updater.start);
+  var ready = function() {
+    var artist_box = document.getElementById('artist_name');
+    $('#artist_name').watermark('Enter an Artist');
+    artist_box.disabled = false;
+    artist_box.focus();
+  };
+
+  var enter = function() {
+    var handle_artist_profile = function(error, results) {
+      if (error || !results.id) {
+        console.log("Enter a valid artist");
+        return;
+      }
+      $('#artist_name').fadeOut(TEXT_FADE_OUT, function() {
+        echollage.controller.start(results.id);
+      });
+    };
+    var artist_name = document.getElementById('artist_name').value;
+    var artist_api = echollage.nest.artist({name: artist_name});
+    artist_api.profile({}, handle_artist_profile);
+  };
+
+  return {
+    enter: enter,
+    ready: ready
+  };
+}();
+
+// Once the soundManager and the window load, call echollage.startup.ready.
+echollage.ready = echollage.on_multiple_ready(2, echollage.startup.ready);
 
 soundManager.setup({
   url: '/SoundManager2/swf/',
