@@ -10,11 +10,15 @@
           type="text/javascript"></script>
   <link rel="stylesheet" href="/static/css/echollage.css" type="text/css" />
   <script src="/nestjs/src/nest.js" type="text/javascript"></script>
-  <script src="/SoundManager2/script/soundmanager2.js"
+  <script src="/SoundManager2/script/soundmanager2-nodebug-jsmin.js"
           type="text/javascript"></script>
   <script src="/static/js/echollage.js" type="text/javascript"></script>
 </head>
 <body>
-  <div id="echollage"></div>
+  <div id="echollage">
+    <input type="text" name="Artist" id="artist_name" spellcheck="false"
+           disabled="true"
+           onkeydown="if (event.keyCode == 13) echollage.startup.enter()"/>
+  </div>
 </body>
 </html>
