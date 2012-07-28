@@ -3,9 +3,9 @@
 // Written by Matthew Tytel in Linnaea's Cafe, San Luis Obispo, CA.
 
 var echollage = {};
-echollage.nest = nest.nest('UPLO3CALHCEZKZTTA');
+echollage.echo_nest_key = 'UPLO3CALHCEZKZTTA';
 
-// Creates a function where when called |number| times, will call |callback|.
+// Creates a function that when called |number| times, will call |callback|.
 echollage.on_multiple_ready = function(number, callback) {
   return function() {
     number--;
@@ -14,104 +14,68 @@ echollage.on_multiple_ready = function(number, callback) {
   };
 };
 
-// A nest.js wrapper to find similar tracks to a given focal artist.
-// Call request_track to get track information from an artist similar to the
-// focal artist.
-echollage.collector = function(focal_artist_id, ready_callback) {
-  if (!echollage.nest) {
-    console.log("Echo Nest is not available :(");
-    return null;
+echollage.playlist = function() {
+  var base_url = 'http://developer.echonest.com/api/v4/playlist/static';
+  var request_data = {
+    api_key: echollage.echo_nest_key,
+    adventurousness: 1.0,
+    bucket: ['id:7digital-US', 'tracks'],
+    distribution: 'focused',
+    dmca: true,
+    limit: true,
+    results: 100,
+    type: 'artist-radio',
+    variety: 1.0
+  };
+
+  function extract_playlist(data) {
+    var tracks = [];
+    var songs = data.response.songs;
+    for (var i = 0; i < songs.length; ++i) {
+      var song = songs[i];
+      var track = song.tracks[0];
+      tracks.push({
+        id: song.id,
+        title: song.title,
+        artist_id: song.artist_id,
+        artist_name: song.artist_name,
+        preview_url: track.preview_url,
+        release_image: track.release_image
+      });
+    }
+    return tracks;
   }
 
-  var similar_artist_ids = [];
-  var TRACKS_RESULTS = 30;
-  var ARTIST_RESULTS = 100;
-  var artist_position = 0;
-
-  // Make a request to the Echo Nest server for artists similar to our
-  // focal artist. Result ids are stored and the ready callback is ran.
-  var focal_artist_api = echollage.nest.artist({id: focal_artist_id});
-  focal_artist_api.similar({results: ARTIST_RESULTS}, function(error, results) {
-    if (error || results.artists.length === 0) {
-      console.log("Similar artists request failed: " + error);
-      return;
-    }
-    var artists = results.artists;
-    for (var i = 0; i < artists.length; ++i)
-      similar_artist_ids.push(artists[i].id);
-    if (ready_callback)
-      ready_callback();
-  });
-
-  // Selects a track containing a |preview_url| and a |release_image| from
-  // the Echo Nest track search results and returns them with the |artist_id|
-  // and |artist_name|. If no valid tracks are found, returns null.
-  function select_track(tracks) {
-    while (tracks.length != 0) {
-      var random_index = parseInt(Math.random() * tracks.length, 10);
-      var track_info = tracks[random_index];
-
-      if (track_info.tracks.length > 0) {
-        var track = track_info.tracks[0];
-
-        if (track.preview_url && track.release_image) {
-          return {
-            id: track_info.id,
-            title: track_info.title,
-            artist_id: track_info.artist_id,
-            artist_name: track_info.artist_name,
-            preview_url: track.preview_url,
-            release_image: track.release_image
-          };
-        }
-      }
-      tracks.splice(random_index, 1);
-    }
-    return null;
-  }
-
-  // Makes request to the Echo Nest server for tracks of a similar artist
-  // and returns a track object selected by |select_track|.
-  var request_track = function(track_callback) {
-    if (similar_artist_ids.length === 0) {
-      console.log("The Echo Nest hasn't reponded :(");
-      return;
-    }
-
-    var handle_tracks = function(error, tracks) {
-      if (error) {
-        console.log("Tracks request failed: " + error);
-        return;
-      }
-      track_callback(select_track(tracks));
+  var get_playlist = function(focal_artist_id, callback) {
+    request_data.artist_id = focal_artist_id;
+    var callback_wrapper = function(data) {
+      if (data.response && data.response.status.code === 0)
+        callback(extract_playlist(data));
+      else
+        console.log('Error retrieving a playlist.');
     };
-
-    var artist_id = similar_artist_ids[artist_position];
-    artist_position = (artist_position + 1) % similar_artist_ids.length;
-
-    var request_data = {
-      artist_id: artist_id,
-      results: TRACKS_RESULTS,
-      bucket: ['id:7digital-US', 'tracks']
-    };
-    echollage.nest.searchSongs(request_data, handle_tracks);
+    jQuery.ajax({
+      url: base_url,
+      data: request_data,
+      dataType: 'json',
+      success: callback_wrapper,
+      traditional: true
+    });
   };
 
   return {
-    request_track: request_track
+    get_playlist: get_playlist
   };
-};
-
-
+}();
 
 // A grid layout of similar artists to the focal artist.
 // Clicking on an artist will set the new focal artist.
-echollage.grid_display = function() {
+echollage.collage = function() {
   var WIDTH = 6;
   var HEIGHT = 4;
-  var current_focal_cell = null;
-  var current_active_cell = null;
-  var current_hovering_cell = null;
+  var focal_cell = null;
+  var active_cell = null;
+  var hovering_cell = null;
   var last_loaded_cell = null;
   var update_position = 0;
 
@@ -190,21 +154,21 @@ echollage.grid_display = function() {
       update_position = 0;
     }
 
-    if (cell === current_focal_cell || cell === current_active_cell ||
-        cell === current_hovering_cell) {
+    if (cell === focal_cell || cell === active_cell ||
+        cell === hovering_cell) {
       return get_next_cell();
     }
     return cell;
   }
 
   function play(cell) {
-    if (cell !== current_active_cell)
+    if (cell !== active_cell)
       echollage.controller.set_focal_artist(cell.getAttribute('artist_id'));
 
-    if (current_active_cell)
-      pause(current_active_cell);
+    if (active_cell)
+      pause(active_cell);
     soundManager.play(cell.getAttribute('track_id'));
-    current_active_cell = cell;
+    active_cell = cell;
     cell.getElementsByClassName('border')[0].style.visibility = 'visible';
     cell.getElementsByClassName('play')[0].classList.add('playing');
   }
@@ -265,7 +229,7 @@ echollage.grid_display = function() {
     cell.appendChild(create_track_info_box(track));
 
     image.onmouseover = function() {
-      current_hovering_cell = cell;
+      hovering_cell = cell;
     };
 
     var play_button = create_play_button();
@@ -275,6 +239,12 @@ echollage.grid_display = function() {
     cell.appendChild(play_button);
     last_loaded_cell = cell;
   }
+
+  var should_display = function(track) {
+    if (track)
+      return true;
+    return false;
+  };
 
   // Accepts track data and will attempt to load the audio and image within.
   // If it succeeds, we will place the image on the grid.
@@ -303,7 +273,8 @@ echollage.grid_display = function() {
 
   return {
     init: init,
-    place_track: place_track
+    place_track: place_track,
+    should_display: should_display
   };
 }();
 
@@ -322,40 +293,34 @@ echollage.exponential_decay = function(from, to, half_life) {
   };
 };
 
-// The Update controller.
-// Responsible for requesting tracks from the collector and sending results
-// to the grid_display. Also sets up an initial display to get the focal artist
-// from the user.
 echollage.controller = function() {
   var update_period = echollage.exponential_decay(500, 4000, 10);
+  var playlist = [];
   var update_timeout = null;
-  var collector = null;
 
-  // Sends a valid received track to the grid_display.
-  function handle_track(track) {
-    if (track)
-      echollage.grid_display.place_track(track);
-  }
-
-  // Requests a new track from the collector.
   function update() {
-    collector.request_track(handle_track);
+    var track = playlist.shift();
+    if (echollage.collage.should_display(track))
+      echollage.collage.place_track(track);
     update_timeout = setTimeout(update, update_period.next());
   }
 
-  // Sets up a new Echo Nest collector for the new artist.
-  // Cancels any updates because we need to wait for the new artists.
-  var set_focal_artist = function(focal_artist_id) {
+  var handle_playlist = function(result_playlist) {
+    if (!result_playlist || result_playlist.length == 0)
+      return;
     if (update_timeout)
       clearTimeout(update_timeout);
-    collector = echollage.collector(focal_artist_id, update);
+    playlist = result_playlist;
+    update();
   };
 
-  // Init the display and collector with the received |artist_id|.
-  // When the collector is ready, start updates.
+  var set_focal_artist = function(focal_artist_id) {
+    echollage.playlist.get_playlist(focal_artist_id, handle_playlist);
+  };
+
   function start(artist_id) {
-    collector = echollage.collector(artist_id, update);
-    echollage.grid_display.init();
+    echollage.collage.init();
+    set_focal_artist(artist_id);
   }
 
   return {
@@ -366,27 +331,32 @@ echollage.controller = function() {
 
 echollage.startup = function() {
   var TEXT_FADE_OUT = 200;
+  var base_url = 'http://developer.echonest.com/api/v4/artist/profile';
 
   var ready = function() {
-    var artist_box = document.getElementById('artist_name');
-    $('#artist_name').watermark('Enter an Artist');
-    artist_box.disabled = false;
-    artist_box.focus();
+    jQuery('#artist_name').watermark('Enter an Artist')
+                          .removeAttr('disabled').focus();
   };
 
   var enter = function() {
-    var handle_artist_profile = function(error, results) {
-      if (error || !results.id) {
-        console.log("Enter a valid artist");
-        return;
+    var callback = function(data) {
+      var response = data.response;
+      if (response && response.status.code === 0) {
+        jQuery('#artist_name').fadeOut(TEXT_FADE_OUT, function() {
+          echollage.controller.start(response.artist.id);
+        });
       }
-      $('#artist_name').fadeOut(TEXT_FADE_OUT, function() {
-        echollage.controller.start(results.id);
-      });
+      else
+        jQuery('#artist_name').removeAttr('disabled').focus();
     };
-    var artist_name = document.getElementById('artist_name').value;
-    var artist_api = echollage.nest.artist({name: artist_name});
-    artist_api.profile({}, handle_artist_profile);
+
+    var artist_name = jQuery('#artist_name').val();
+    jQuery('#artist_name').attr('disabled', true).blur();
+    var request_data = {
+      api_key: echollage.echo_nest_key,
+      name: artist_name
+    };
+    jQuery.get(base_url, request_data, callback);
   };
 
   return {
