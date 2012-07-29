@@ -14,6 +14,8 @@ echollage.on_multiple_ready = function(number, callback) {
   };
 };
 
+// Echonest API static playlist requester.
+// Call |get_playlist| to get a new static playlist based on an artist id.
 echollage.playlist = function() {
   var base_url = 'http://developer.echonest.com/api/v4/playlist/static';
   var request_data = {
@@ -28,6 +30,8 @@ echollage.playlist = function() {
     variety: 1.0
   };
 
+  // Takes data returned from The Echo Nest and returns an array of track
+  // objects with all need information.
   function extract_playlist(data) {
     var tracks = [];
     var songs = data.response.songs;
@@ -46,13 +50,14 @@ echollage.playlist = function() {
     return tracks;
   }
 
+  // Makes a request to The Echo Nest for a static playlist given on artist id.
   var get_playlist = function(focal_artist_id, callback) {
     request_data.artist_id = focal_artist_id;
     var callback_wrapper = function(data) {
       if (data.response && data.response.status.code === 0)
         callback(extract_playlist(data));
       else
-        console.log('Error retrieving a playlist.');
+        console.log('Error retrieving a playlist from The Echo Nest.');
     };
     jQuery.ajax({
       url: base_url,
@@ -128,7 +133,7 @@ echollage.collage = function() {
     return document.getElementById(get_cell_id(position));
   }
 
-  // Sets up the base html to load images and audio into.
+  // Sets up the base html to load images and buttons into.
   var init = function() {
     var echollage_dom = document.getElementById('echollage');
     echollage_dom.innerHTML = '';
@@ -145,7 +150,7 @@ echollage.collage = function() {
     }
   };
 
-  // Returns the cell DOM node to replace next.
+  // Returns the cell DOM node to we will replace next.
   function get_next_cell() {
     var cell = get_cell_by_position(update_order[update_position]);
     update_position++;
@@ -161,6 +166,7 @@ echollage.collage = function() {
     return cell;
   }
 
+  // Plays a cell DOM node by starting audio and changing any UI elements.
   function play(cell) {
     if (cell !== active_cell)
       echollage.controller.set_focal_artist(cell.getAttribute('artist_id'));
@@ -173,15 +179,14 @@ echollage.collage = function() {
     cell.getElementsByClassName('play')[0].classList.add('playing');
   }
 
+  // Pauses a cell DOM node by pausing audio and changing any UI elements.
   function pause(cell) {
     soundManager.pause(cell.getAttribute('track_id'));
     cell.getElementsByClassName('border')[0].style.visibility = 'hidden';
     cell.getElementsByClassName('play')[0].classList.remove('playing');
   }
 
-  // Will switch the audio in a cell from playing to paused and vice versa.
-  // If a new cell was clicked on, we will ask the controller to look for
-  // artists similar to the on clicked on.
+  // If a cell DOM node is paused we will play, and if playing we will pause.
   function toggle(cell) {
     var audio = soundManager.getSoundById(cell.getAttribute('track_id'));
     if (audio.playState === 0 || audio.paused)
@@ -220,6 +225,8 @@ echollage.collage = function() {
   // events.
   function place_loaded_data(track, image) {
     var cell = get_next_cell();
+    if (cell.getAttribute('track_id'))
+      soundManager.destroySound(cell.getAttribute('track_id'));
     cell.innerHTML = '';
     cell.setAttribute('artist_id', track.artist_id);
     cell.setAttribute('track_id', track.id);
@@ -240,6 +247,8 @@ echollage.collage = function() {
     last_loaded_cell = cell;
   }
 
+  // TODO: Checks if we should display the given track or not based on what is
+  // currently in the collage.
   var should_display = function(track) {
     if (track)
       return true;
@@ -293,6 +302,8 @@ echollage.exponential_decay = function(from, to, half_life) {
   };
 };
 
+// Collects playlists and slowly sends the results to the display.
+// Accepts change of focal artist.
 echollage.controller = function() {
   var update_period = echollage.exponential_decay(500, 4000, 10);
   var playlist = [];
@@ -305,6 +316,7 @@ echollage.controller = function() {
     update_timeout = setTimeout(update, update_period.next());
   }
 
+  // Receives a playlist and if it's valid will begin updates.
   var handle_playlist = function(result_playlist) {
     if (!result_playlist || result_playlist.length == 0)
       return;
@@ -329,6 +341,7 @@ echollage.controller = function() {
   };
 }();
 
+// The initial display, will look up an artist for the first playlist.
 echollage.startup = function() {
   var TEXT_FADE_OUT = 200;
   var base_url = 'http://developer.echonest.com/api/v4/artist/profile';
