@@ -2,9 +2,9 @@ Echollage
 =========
 Ech(o Nest C)ollage: http://tytel.org/echollage
 
-A web app to explore new/old music through a changing grid of album art.
+A web app to explore new music through a changing grid of album art.
 
-Before running please change the API key to avoid collisions.
+Before running please change the API key to your own to avoid overusage.
 
 To run the local webserver with Echollage:
 
