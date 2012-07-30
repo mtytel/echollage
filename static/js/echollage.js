@@ -237,7 +237,6 @@ echollage.collage = function() {
   // Places successfully loaded audio and image on the grid and adds click
   // events.
   function place_loaded_data(track, image) {
-    console.log("Placing data");
     var cell = get_next_cell();
     clear_cell(cell);
     cell.setAttribute('artist_id', track.artist_id);
