@@ -50,7 +50,7 @@ echollage.playlist = function() {
     return tracks;
   }
 
-  // Makes a request to The Echo Nest for a static playlist given on artist id.
+  // Makes a request to The Echo Nest for a static playlist given an artist id.
   var get_playlist = function(focal_artist_id, callback) {
     request_data.artist_id = focal_artist_id;
     var callback_wrapper = function(data) {
@@ -78,16 +78,14 @@ echollage.playlist = function() {
 echollage.collage = function() {
   var WIDTH = 6;
   var HEIGHT = 4;
+  var MAX_ARTIST_TRACKS = 2;
+
   var focal_cell = null;
   var active_cell = null;
   var hovering_cell = null;
   var last_loaded_cell = null;
   var update_position = 0;
-
-  // Computes integer position based on grid coordinates.
-  function compute_position(r, c) {
-    return r * WIDTH + c;
-  }
+  var artist_tracks = {};
 
   // This is a spiral starting from the top right, traveling clockwise.
   // Rearrange for different effects.
@@ -115,6 +113,11 @@ echollage.collage = function() {
     return positions;
   }();
 
+  // Computes integer position based on grid coordinates.
+  function compute_position(r, c) {
+    return r * WIDTH + c;
+  }
+
   // Returns a list of numbers 1 to n shuffled.
   function shuffle(n) {
     var shuffled = [];
@@ -125,7 +128,7 @@ echollage.collage = function() {
 
   // Gets cell id for DOM.
   function get_cell_id(position) {
-    return 'piece' + position;
+    return 'cell' + position;
   }
 
   // Returns DOM node for cell positions.
@@ -221,39 +224,46 @@ echollage.collage = function() {
     return track_info;
   }
 
+  function clear_cell(cell) {
+    var track_id = cell.getAttribute('track_id');
+    var artist_id = cell.getAttribute('artist_id');
+
+    if (track_id) {
+      soundManager.destroySound(track_id);
+      delete artist_tracks[artist_id][track_id];
+      if (Object.keys(artist_tracks[artist_id]).length === 0)
+        delete artist_tracks[artist_id];
+    }
+    cell.innerHTML = '';
+  }
+
   // Places successfully loaded audio and image on the grid and adds click
   // events.
   function place_loaded_data(track, image) {
     var cell = get_next_cell();
-    if (cell.getAttribute('track_id'))
-      soundManager.destroySound(cell.getAttribute('track_id'));
-    cell.innerHTML = '';
+    clear_cell(cell);
     cell.setAttribute('artist_id', track.artist_id);
     cell.setAttribute('track_id', track.id);
-
-    cell.appendChild(image);
-    cell.appendChild(create_active_border());
-    cell.appendChild(create_track_info_box(track));
 
     image.onmouseover = function() {
       hovering_cell = cell;
     };
+    cell.appendChild(image);
+    cell.appendChild(create_active_border());
+    cell.appendChild(create_track_info_box(track));
 
     var play_button = create_play_button();
     play_button.onclick = function() {
       toggle(cell);
     };
     cell.appendChild(play_button);
+
+    if (!artist_tracks[track.artist_id])
+      artist_tracks[track.artist_id] = {};
+
+    artist_tracks[track.artist_id][track.id] = track;
     last_loaded_cell = cell;
   }
-
-  // TODO: Checks if we should display the given track or not based on what is
-  // currently in the collage.
-  var should_display = function(track) {
-    if (track)
-      return true;
-    return false;
-  };
 
   // Accepts track data and will attempt to load the audio and image within.
   // If it succeeds, we will place the image on the grid.
@@ -278,6 +288,14 @@ echollage.collage = function() {
         play(last_loaded_cell);
       }
     });
+  };
+
+  // Checks if we should display the given track or not based on what is
+  // currently in the collage.
+  var should_display = function(track) {
+    return !artist_tracks[track.artist_id] ||
+           (Object.keys(artist_tracks[track.artist_id]) < MAX_ARTIST_TRACKS &&
+           artist_tracks[track.artist_id][track.id]);
   };
 
   return {
@@ -318,7 +336,7 @@ echollage.controller = function() {
 
   // Receives a playlist and if it's valid will begin updates.
   var handle_playlist = function(result_playlist) {
-    if (!result_playlist || result_playlist.length == 0)
+    if (!result_playlist || result_playlist.length === 0)
       return;
     if (update_timeout)
       clearTimeout(update_timeout);
