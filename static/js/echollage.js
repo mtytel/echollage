@@ -329,6 +329,8 @@ echollage.controller = function() {
 
   function update() {
     var track = playlist.shift();
+    while (track && !echollage.collage.should_display(track))
+      track = playlist.shift();
     if (echollage.collage.should_display(track))
       echollage.collage.place_track(track);
     update_timeout = setTimeout(update, update_period.next());
