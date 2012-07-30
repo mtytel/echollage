@@ -140,10 +140,10 @@ echollage.collage = function() {
     var echollage_dom = document.getElementById('echollage');
     echollage_dom.innerHTML = '';
 
-    for (var r = 0; r < WIDTH; ++r) {
+    for (var r = 0; r < HEIGHT; ++r) {
       var row = document.createElement('ul');
 
-      for (var c = 0; c < HEIGHT; ++c) {
+      for (var c = 0; c < WIDTH; ++c) {
         var cell = document.createElement('li');
         cell.setAttribute('id', get_cell_id(compute_position(r, c)));
         row.appendChild(cell);
@@ -237,6 +237,7 @@ echollage.collage = function() {
   // Places successfully loaded audio and image on the grid and adds click
   // events.
   function place_loaded_data(track, image) {
+    console.log("Placing data");
     var cell = get_next_cell();
     clear_cell(cell);
     cell.setAttribute('artist_id', track.artist_id);
