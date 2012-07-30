@@ -290,9 +290,12 @@ echollage.collage = function() {
   // Checks if we should display the given track or not based on what is
   // currently in the collage.
   var should_display = function(track) {
-    return !artist_tracks[track.artist_id] ||
-           (Object.keys(artist_tracks[track.artist_id]) < MAX_ARTIST_TRACKS &&
-           artist_tracks[track.artist_id][track.id]);
+    if (!track)
+      return false;
+    if (!artist_tracks[track.artist_id])
+      return true;
+    return Object.keys(artist_tracks[track.artist_id]) < MAX_ARTIST_TRACKS &&
+           artist_tracks[track.artist_id][track.id];
   };
 
   return {
