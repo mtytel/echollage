@@ -80,7 +80,6 @@ echollage.collage = function() {
   var HEIGHT = 4;
   var MAX_ARTIST_TRACKS = 2;
 
-  var focal_cell = null;
   var active_cell = null;
   var hovering_cell = null;
   var last_loaded_cell = null;
@@ -146,7 +145,7 @@ echollage.collage = function() {
 
       for (var c = 0; c < HEIGHT; ++c) {
         var cell = document.createElement('li');
-        cell.setAttribute('id', get_cell_id(r * HEIGHT + c));
+        cell.setAttribute('id', get_cell_id(compute_position(r, c)));
         row.appendChild(cell);
       }
       echollage_dom.appendChild(row);
@@ -162,10 +161,8 @@ echollage.collage = function() {
       update_position = 0;
     }
 
-    if (cell === focal_cell || cell === active_cell ||
-        cell === hovering_cell) {
+    if (cell === hovering_cell || cell === active_cell)
       return get_next_cell();
-    }
     return cell;
   }
 
