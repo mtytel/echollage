@@ -367,8 +367,8 @@ echollage.startup = function() {
   var base_url = 'http://developer.echonest.com/api/v4/artist/profile';
 
   var ready = function() {
-    jQuery('#artist_name').watermark('Enter an Artist')
-                          .removeAttr('disabled').focus();
+    jQuery('#artist_name').watermark('Enter an Artist', {useNative: false})
+                          .removeAttr('disabled');
   };
 
   var enter = function() {

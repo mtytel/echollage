@@ -18,6 +18,10 @@ body {
   margin:0 auto;
 }
 
+#echollage .watermark {
+  color: #999 !important;
+}
+
 #echollage ul {
   list-style:none;
   display:-webkit-box;
