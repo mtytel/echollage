@@ -389,7 +389,13 @@ echollage.startup = function() {
       api_key: echollage.echo_nest_key,
       name: artist_name
     };
-    jQuery.get(base_url, request_data, callback);
+    jQuery.ajax({
+      url: base_url,
+      data: request_data,
+      dataType: 'json',
+      success: callback,
+      traditional: true
+    });
   };
 
   return {
