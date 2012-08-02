@@ -44,7 +44,7 @@ body {
   width:200px;
   height:200px;
   padding:0;
-  margin:0;
+  margin:auto;
 }
 
 #echollage div.overlay {
@@ -66,6 +66,18 @@ body {
   -moz-opacity:0.6;
   -khtml-opacity: 0.6;
   opacity: 0.6;
+}
+
+#artist_spinner {
+  z-index:1;
+  position:absolute;
+  display:none;
+  top:7px;
+  right:56px;
+  width:30px;
+  height:30px;
+  background-position:center;
+  background-image:url(/static/images/spinner.gif);
 }
 
 #echollage div.track-info:hover {
@@ -105,10 +117,11 @@ body {
   opacity: 0.9;
 }
 
-#echollage div.artist_entry {
+#artist_entry {
   position:absolute;
   margin-left:390px;
   margin-top:100px;
+  width:600px;
   font-size:20px;
   color: #A1A5BA;
 }

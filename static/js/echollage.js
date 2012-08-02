@@ -18,7 +18,7 @@ echollage.on_multiple_ready = function(number, callback) {
 // Call |get_playlist| to get a new static playlist based on an artist id.
 echollage.playlist = function() {
   var base_url = 'http://developer.echonest.com/api/v4/playlist/static';
-  var request_data = {
+  var default_data = {
     api_key: echollage.echo_nest_key,
     adventurousness: 1.0,
     bucket: ['id:7digital-US', 'tracks'],
@@ -50,14 +50,18 @@ echollage.playlist = function() {
     return tracks;
   }
 
-  // Makes a request to The Echo Nest for a static playlist given an artist id.
-  var get_playlist = function(focal_artist_id, callback) {
-    request_data.artist_id = focal_artist_id;
+  // Makes a static playlist request to The Echo Nest given |request_data|.
+  function get_playlist(request_data, success_callback, error_callback) {
     var callback_wrapper = function(data) {
-      if (data.response && data.response.status.code === 0)
-        callback(extract_playlist(data));
-      else
-        console.log('Error retrieving a playlist from The Echo Nest.');
+      if (data.response && data.response.status.code === 0) {
+        var playlist = extract_playlist(data);
+        if (playlist) {
+          success_callback(playlist);
+          return;
+        }
+      }
+      if (error_callback)
+        error_callback();
     };
     jQuery.ajax({
       url: base_url,
@@ -66,10 +70,21 @@ echollage.playlist = function() {
       success: callback_wrapper,
       traditional: true
     });
+  }
+
+  var get_playlist_by_name = function(focal_artist_name, success, error) {
+    var data = jQuery.extend({artist: focal_artist_name}, default_data);
+    get_playlist(data, success, error);
+  };
+
+  var get_playlist_by_id = function(focal_artist_id, success, error) {
+    var data = jQuery.extend({artist_id: focal_artist_id}, default_data);
+    get_playlist(data, success, error);
   };
 
   return {
-    get_playlist: get_playlist
+    get_playlist_by_id: get_playlist_by_id,
+    get_playlist_by_name: get_playlist_by_name
   };
 }();
 
@@ -347,12 +362,13 @@ echollage.controller = function() {
   };
 
   var set_focal_artist = function(focal_artist_id) {
-    echollage.playlist.get_playlist(focal_artist_id, handle_playlist);
+    echollage.playlist.get_playlist_by_id(focal_artist_id, handle_playlist);
   };
 
-  function start(artist_id) {
+  function start(initial_playlist) {
+    playlist = initial_playlist;
     echollage.collage.init();
-    set_focal_artist(artist_id);
+    update();
   }
 
   return {
@@ -363,42 +379,31 @@ echollage.controller = function() {
 
 // The initial display, will look up an artist for the first playlist.
 echollage.startup = function() {
-  var TEXT_FADE_OUT = 200;
-  var base_url = 'http://developer.echonest.com/api/v4/artist/profile';
+  var TEXT_FADE_OUT = 1000;
 
   function enter() {
-    var callback = function(data) {
-      var response = data.response;
-      if (response && response.status.code === 0) {
-        jQuery('#artist_name').fadeOut(TEXT_FADE_OUT, function() {
-          echollage.controller.start(response.artist.id);
-        });
-      }
-      else
-        jQuery('#artist_name').removeAttr('disabled').focus();
+    var success = function(playlist) {
+      jQuery('#artist_entry').fadeOut(TEXT_FADE_OUT, function() {
+        echollage.controller.start(playlist);
+      });
+    };
+
+    var error = function() {
+      jQuery('#artist_name').removeAttr('disabled').focus();
+      jQuery('#artist_spinner').fadeOut();
     };
 
     var artist_name = jQuery('#artist_name').val();
+    echollage.playlist.get_playlist_by_name(artist_name, success, error);
     jQuery('#artist_name').attr('disabled', true).blur();
-    var request_data = {
-      api_key: echollage.echo_nest_key,
-      name: artist_name
-    };
-    jQuery.ajax({
-      url: base_url,
-      data: request_data,
-      dataType: 'json',
-      success: callback,
-      traditional: true
-    });
+    jQuery('#artist_spinner').fadeIn();
   }
 
   var ready = function() {
     jQuery('#artist_name').removeAttr('disabled');
     jQuery('#artist_name').keypress(function(e) {
-      if(e.which == 13) {
+      if(e.which == 13)
         enter();
-      }
     });
   };
 
