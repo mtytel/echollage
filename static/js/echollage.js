@@ -27,7 +27,7 @@ echollage.playlist = function() {
     limit: true,
     results: 100,
     type: 'artist-radio',
-    variety: 1.0
+    variety: 0.7
   };
 
   // Takes data returned from The Echo Nest and returns an array of track
@@ -96,9 +96,9 @@ echollage.collage = function() {
   var HEIGHT = 4;
   var MAX_ARTIST_TRACKS = 2;
 
-  var active_cell = null;
-  var hovering_cell = null;
-  var last_loaded_cell = null;
+  var active_id = null;
+  var hovering_id = null;
+  var last_loaded_id = null;
   var update_position = 0;
   var artist_tracks = {};
 
@@ -141,14 +141,12 @@ echollage.collage = function() {
     return shuffled;
   }
 
-  // Gets cell id for DOM.
   function get_cell_id(position) {
     return 'cell' + position;
   }
 
-  // Returns DOM node for cell positions.
-  function get_cell_by_position(position) {
-    return jQuery('#' + get_cell_id(position));
+  function get_cell_css_id(position) {
+    return '#' + get_cell_id(position);
   }
 
   // Sets up the base html to load images and buttons into.
@@ -159,53 +157,61 @@ echollage.collage = function() {
 
       for (var c = 0; c < WIDTH; ++c) {
         var cell_id = get_cell_id(compute_position(r, c));
-        row.append(jQuery('<li></li>').attr('id', cell_id))
+        row.append(jQuery('<li></li>').attr('id', cell_id));
       }
       collage.append(row);
     }
   };
 
   // Returns the cell DOM node to we will replace next.
-  function get_next_cell() {
-    var cell = get_cell_by_position(update_order[update_position]);
+  function get_next_id() {
+    var id = get_cell_css_id(update_order[update_position]);
     update_position++;
     if (update_position >= update_order.length) {
       update_order = shuffle(WIDTH * HEIGHT);
       update_position = 0;
     }
 
-    if (cell === hovering_cell || cell === active_cell)
-      return get_next_cell();
-    return cell;
+    if (id === hovering_id || id === active_id)
+      return get_next_id();
+    return id;
   }
 
   // Plays a cell DOM node by starting audio and changing any UI elements.
-  function play(cell) {
-    if (cell !== active_cell)
+  function play(id) {
+    var cell = jQuery(id);
+    if (id !== active_id)
       echollage.controller.set_focal_artist(cell.attr('artist_id'));
 
-    if (active_cell)
-      pause(active_cell);
+    if (active_id)
+      pause(active_id);
     soundManager.play(cell.attr('track_id'));
-    active_cell = cell;
+
+    active_id = id;
     cell.children('.border').show();
     cell.children('.play').addClass('playing');
   }
 
   // Pauses a cell DOM node by pausing audio and changing any UI elements.
-  function pause(cell) {
+  function pause(id) {
+    var cell = jQuery(id);
     soundManager.pause(cell.attr('track_id'));
     cell.children('.border').hide();
     cell.children('.play').removeClass('playing');
   }
 
   // If a cell DOM node is paused we will play, and if playing we will pause.
-  function toggle(cell) {
+  function toggle(id) {
+    var cell = jQuery(id);
     var audio = soundManager.getSoundById(cell.attr('track_id'));
     if (audio.playState === 0 || audio.paused)
-      play(cell);
+      play(id);
     else
-      pause(cell);
+      pause(id);
+  }
+
+  function create_album_art_div() {
+    return jQuery('<div></div>').addClass('album-art');
   }
 
   function create_play_button() {
@@ -222,7 +228,8 @@ echollage.collage = function() {
            .append(jQuery('<p>' + track_data.title + '</p>'));
   }
 
-  function free_sound(cell) {
+  function free_sound(id) {
+    var cell = jQuery(id);
     var track_id = cell.attr('track_id');
     var artist_id = cell.attr('artist_id');
 
@@ -232,47 +239,62 @@ echollage.collage = function() {
       if (Object.keys(artist_tracks[artist_id]).length === 0)
         delete artist_tracks[artist_id];
     }
-    cell.html('');
+  }
+
+  function replace_track_info_box(id, track) {
+    var cell = jQuery(id);
+    cell.children('.track-info').remove();
+    cell.append(create_track_info_box(track));
+  }
+
+  function replace_album_art(id, image) {
+    var cell = jQuery(id);
+    var old_image = cell.children('img');
+    cell.append(image.hide());
+    image.fadeIn('slow', function() {
+      old_image.remove();
+    });
+  }
+
+  function init_cell(id, track) {
+    jQuery(id).append(create_active_border())
+              .append(create_track_info_box(track))
+              .append(create_play_button())
+              .hover(function() { hovering_id = id; })
+              .click(function() { toggle(id); });
   }
 
   // Places successfully loaded audio and image on the grid and adds click
   // events.
   function place_loaded_data(track, image) {
-    var cell = get_next_cell();
-    free_sound(cell);
+    var id = get_next_id();
+    var cell = jQuery(id);
+
+    free_sound(id);
     cell.attr('artist_id', track.artist_id);
     cell.attr('track_id', track.id);
 
-    cell.append(image);
-    cell.append(create_active_border());
-    cell.append(create_track_info_box(track));
-    cell.append(create_play_button())
-
-    cell.hover(function() {
-      hovering_cell = cell;
-    });
-    cell.click(function() {
-      toggle(cell);
-    });
+    if (cell.children('img').size() === 0)
+      init_cell(id, track);
+    replace_album_art(id, image);
+    replace_track_info_box(id, track);
 
     if (!artist_tracks[track.artist_id])
       artist_tracks[track.artist_id] = {};
 
     artist_tracks[track.artist_id][track.id] = track;
-    last_loaded_cell = cell;
+    last_loaded_id = id;
   }
 
   // Accepts track data and will attempt to load the audio and image within.
   // If it succeeds, we will place the image on the grid.
   var place_track = function(track) {
-    var image = new Image();
+    var image = jQuery('<img />').attr('src', track.release_image);
     var on_media_ready = echollage.on_multiple_ready(2, function() {
       place_loaded_data(track, image);
     });
 
-    image.src = track.release_image;
-    image.onload = on_media_ready;
-
+    image.load(on_media_ready);
     soundManager.createSound({
       id: track.id,
       url: track.preview_url,
@@ -282,7 +304,7 @@ echollage.collage = function() {
           on_media_ready();
       },
       onfinish: function() {
-        play(last_loaded_cell);
+        play(last_loaded_id);
       }
     });
   };
