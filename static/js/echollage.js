@@ -68,6 +68,7 @@ echollage.playlist = function() {
       data: request_data,
       dataType: 'json',
       success: callback_wrapper,
+      error: error_callback,
       traditional: true
     });
   }
@@ -257,18 +258,17 @@ echollage.collage = function() {
     cell.setAttribute('artist_id', track.artist_id);
     cell.setAttribute('track_id', track.id);
 
-    image.onmouseover = function() {
-      hovering_cell = cell;
-    };
     cell.appendChild(image);
     cell.appendChild(create_active_border());
     cell.appendChild(create_track_info_box(track));
+    cell.appendChild(create_play_button())
 
-    var play_button = create_play_button();
-    play_button.onclick = function() {
+    cell.onhover = function() {
+      hovering_cell = cell;
+    };
+    cell.onclick = function() {
       toggle(cell);
     };
-    cell.appendChild(play_button);
 
     if (!artist_tracks[track.artist_id])
       artist_tracks[track.artist_id] = {};
