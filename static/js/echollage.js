@@ -148,23 +148,20 @@ echollage.collage = function() {
 
   // Returns DOM node for cell positions.
   function get_cell_by_position(position) {
-    return document.getElementById(get_cell_id(position));
+    return jQuery('#' + get_cell_id(position));
   }
 
   // Sets up the base html to load images and buttons into.
   var init = function() {
-    var echollage_dom = document.getElementById('echollage');
-    echollage_dom.innerHTML = '';
-
+    var collage = jQuery('#echollage').html('');
     for (var r = 0; r < HEIGHT; ++r) {
-      var row = document.createElement('ul');
+      var row = jQuery('<ul></ul>');
 
       for (var c = 0; c < WIDTH; ++c) {
-        var cell = document.createElement('li');
-        cell.setAttribute('id', get_cell_id(compute_position(r, c)));
-        row.appendChild(cell);
+        var cell_id = get_cell_id(compute_position(r, c));
+        row.append(jQuery('<li></li>').attr('id', cell_id))
       }
-      echollage_dom.appendChild(row);
+      collage.append(row);
     }
   };
 
@@ -185,26 +182,26 @@ echollage.collage = function() {
   // Plays a cell DOM node by starting audio and changing any UI elements.
   function play(cell) {
     if (cell !== active_cell)
-      echollage.controller.set_focal_artist(cell.getAttribute('artist_id'));
+      echollage.controller.set_focal_artist(cell.attr('artist_id'));
 
     if (active_cell)
       pause(active_cell);
-    soundManager.play(cell.getAttribute('track_id'));
+    soundManager.play(cell.attr('track_id'));
     active_cell = cell;
-    cell.getElementsByClassName('border')[0].style.visibility = 'visible';
-    cell.getElementsByClassName('play')[0].classList.add('playing');
+    cell.children('.border').show();
+    cell.children('.play').addClass('playing');
   }
 
   // Pauses a cell DOM node by pausing audio and changing any UI elements.
   function pause(cell) {
-    soundManager.pause(cell.getAttribute('track_id'));
-    cell.getElementsByClassName('border')[0].style.visibility = 'hidden';
-    cell.getElementsByClassName('play')[0].classList.remove('playing');
+    soundManager.pause(cell.attr('track_id'));
+    cell.children('.border').hide();
+    cell.children('.play').removeClass('playing');
   }
 
   // If a cell DOM node is paused we will play, and if playing we will pause.
   function toggle(cell) {
-    var audio = soundManager.getSoundById(cell.getAttribute('track_id'));
+    var audio = soundManager.getSoundById(cell.attr('track_id'));
     if (audio.playState === 0 || audio.paused)
       play(cell);
     else
@@ -212,34 +209,22 @@ echollage.collage = function() {
   }
 
   function create_play_button() {
-    var play_button = document.createElement('div');
-    play_button.setAttribute('class', 'overlay play');
-    return play_button;
+    return jQuery('<div></div>').addClass('overlay play');
   }
 
   function create_active_border() {
-    var active_border = document.createElement('div');
-    active_border.setAttribute('class', 'border');
-    return active_border;
+    return jQuery('<div></div>').addClass('border');
   }
 
   function create_track_info_box(track_data) {
-    var track_info = document.createElement('div');
-    track_info.setAttribute('class', 'overlay track-info');
-
-    var artist_name = document.createElement('p');
-    artist_name.textContent = track_data.artist_name;
-    track_info.appendChild(artist_name);
-
-    var track_title = document.createElement('p');
-    track_title.textContent = track_data.title;
-    track_info.appendChild(track_title);
-    return track_info;
+    return jQuery('<div></div>').addClass('overlay track-info')
+           .append(jQuery('<p>' + track_data.artist_name + '</p>'))
+           .append(jQuery('<p>' + track_data.title + '</p>'));
   }
 
-  function clear_cell(cell) {
-    var track_id = cell.getAttribute('track_id');
-    var artist_id = cell.getAttribute('artist_id');
+  function free_sound(cell) {
+    var track_id = cell.attr('track_id');
+    var artist_id = cell.attr('artist_id');
 
     if (track_id) {
       soundManager.destroySound(track_id);
@@ -247,28 +232,28 @@ echollage.collage = function() {
       if (Object.keys(artist_tracks[artist_id]).length === 0)
         delete artist_tracks[artist_id];
     }
-    cell.innerHTML = '';
+    cell.html('');
   }
 
   // Places successfully loaded audio and image on the grid and adds click
   // events.
   function place_loaded_data(track, image) {
     var cell = get_next_cell();
-    clear_cell(cell);
-    cell.setAttribute('artist_id', track.artist_id);
-    cell.setAttribute('track_id', track.id);
+    free_sound(cell);
+    cell.attr('artist_id', track.artist_id);
+    cell.attr('track_id', track.id);
 
-    cell.appendChild(image);
-    cell.appendChild(create_active_border());
-    cell.appendChild(create_track_info_box(track));
-    cell.appendChild(create_play_button())
+    cell.append(image);
+    cell.append(create_active_border());
+    cell.append(create_track_info_box(track));
+    cell.append(create_play_button())
 
-    cell.onhover = function() {
+    cell.hover(function() {
       hovering_cell = cell;
-    };
-    cell.onclick = function() {
+    });
+    cell.click(function() {
       toggle(cell);
-    };
+    });
 
     if (!artist_tracks[track.artist_id])
       artist_tracks[track.artist_id] = {};

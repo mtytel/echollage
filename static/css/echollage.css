@@ -106,7 +106,7 @@ body {
 
 #echollage div.border {
   z-index:1;
-  visibility:hidden;
+  display:none;
   position:absolute;
   background-repeat:no-repeat;
   background-image:url(/static/images/black_border.png);
