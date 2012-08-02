@@ -366,12 +366,7 @@ echollage.startup = function() {
   var TEXT_FADE_OUT = 200;
   var base_url = 'http://developer.echonest.com/api/v4/artist/profile';
 
-  var ready = function() {
-    jQuery('#artist_name').watermark('Enter an Artist', {useNative: false})
-                          .removeAttr('disabled');
-  };
-
-  var enter = function() {
+  function enter() {
     var callback = function(data) {
       var response = data.response;
       if (response && response.status.code === 0) {
@@ -396,10 +391,18 @@ echollage.startup = function() {
       success: callback,
       traditional: true
     });
+  }
+
+  var ready = function() {
+    jQuery('#artist_name').removeAttr('disabled');
+    jQuery('#artist_name').keypress(function(e) {
+      if(e.which == 13) {
+        enter();
+      }
+    });
   };
 
   return {
-    enter: enter,
     ready: ready
   };
 }();
