@@ -24,6 +24,7 @@ echollage.playlist = function() {
     bucket: ['id:7digital-US', 'tracks'],
     distribution: 'focused',
     dmca: true,
+    format: 'jsonp',
     limit: true,
     results: 100,
     type: 'artist-radio',
@@ -66,7 +67,7 @@ echollage.playlist = function() {
     jQuery.ajax({
       url: base_url,
       data: request_data,
-      dataType: 'json',
+      dataType: 'jsonp',
       success: callback_wrapper,
       error: error_callback,
       traditional: true
@@ -421,6 +422,7 @@ echollage.startup = function() {
 
 // Once the soundManager and the window load, call echollage.startup.ready.
 echollage.ready = echollage.on_multiple_ready(2, echollage.startup.ready);
+jQuery.support.cors = true;
 
 soundManager.setup({
   url: '/SoundManager2/swf/',
