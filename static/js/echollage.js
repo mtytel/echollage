@@ -162,7 +162,7 @@ echollage.collage = function() {
 
   // Sets up the base html to load images and buttons into.
   var init = function() {
-    var collage = jQuery('#echollage').html('');
+    var grid = jQuery('#grid').html('');
     for (var r = 0; r < HEIGHT; ++r) {
       var row = jQuery('<ul></ul>');
 
@@ -170,7 +170,7 @@ echollage.collage = function() {
         var cell_id = get_cell_id(compute_position(r, c));
         row.append(jQuery('<li></li>').attr('id', cell_id));
       }
-      collage.append(row);
+      grid.append(row);
     }
   };
 
@@ -426,7 +426,7 @@ echollage.startup = function() {
   }
 
   var ready = function() {
-    jQuery('#artist_name').focus();
+    jQuery('#artist_name').val('').addClass('empty').focus();
     jQuery('#artist_name').keypress(function(e) {
       if (e.which == 13 && this.value !== '')
         enter();

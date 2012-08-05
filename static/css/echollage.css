@@ -20,7 +20,7 @@ body {
   margin:0 auto;
 }
 
-#echollage ul {
+#grid ul {
   list-style:none;
   display:-webkit-box;
   -webkit-box-orient: horizontal;
@@ -29,7 +29,7 @@ body {
   margin:0px;
 }
 
-#echollage li {
+#grid li {
   -webkit-box-flex:1;
   width:200px;
   height:200px;
@@ -40,7 +40,7 @@ body {
   float:left;
 }
 
-#echollage img {
+#grid img {
   position:absolute;
   top:0px;
   left:0px;
@@ -50,7 +50,7 @@ body {
   margin:auto;
 }
 
-#echollage div.overlay {
+#grid div.overlay {
   z-index:2;
   visibility:hidden;
   position:absolute;
@@ -60,11 +60,11 @@ body {
   opacity: 0.8;
 }
 
-#echollage li:hover div.overlay {
+#grid li:hover div.overlay {
   visibility:visible;
 }
 
-#echollage div.play {
+#grid div.play {
   z-index:3;
   filter:alpha(opacity=30);
   -moz-opacity:0.3;
@@ -72,7 +72,7 @@ body {
   opacity: 0.3;
 }
 
-#echollage div.play:hover {
+#grid div.play:hover {
   filter:alpha(opacity=60);
   -moz-opacity:0.6;
   -khtml-opacity: 0.6;
@@ -91,7 +91,7 @@ body {
   background-image:url(/static/images/spinner.gif);
 }
 
-#echollage div.play {
+#grid div.play {
   background-repeat:no-repeat;
   background-position:center;
   background-image:url(/static/images/play.png);
@@ -101,11 +101,11 @@ body {
   width:160px;
 }
 
-#echollage div.play.playing {
+#grid div.play.playing {
   background-image:url(/static/images/pause.png);
 }
 
-#echollage div.border {
+#grid div.border {
   z-index:1;
   display:none;
   position:absolute;
@@ -168,7 +168,7 @@ body {
   border-color: #7CF;
 }
 
-#echollage div.track-info {
+#grid div.track-info {
   background-color:black;
   width:200px;
   height:200px;
