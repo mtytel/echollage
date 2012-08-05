@@ -80,7 +80,7 @@ body {
 }
 
 #artist_spinner {
-  z-index:1;
+  z-index:7;
   position:absolute;
   display:none;
   top:7px;
@@ -139,12 +139,28 @@ body {
   -moz-border-radius: 5px;
   border-radius: 5px;
   background-color:#111;
-  border-color: #CDF;
+  border-color:white;
   color:white;
   height:35px;
   width:530px;
   padding-left:5px;
   font-size:20px;
+}
+
+#artist_name {
+  z-index:6;
+  position:absolute;
+  top:0;
+  left:0;
+}
+
+#echollage input.empty {
+  opacity:0.7;
+}
+
+#artist_default {
+  border-color: #7CF !important;
+  z-index:4;
 }
 
 #echollage input:focus {

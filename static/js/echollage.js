@@ -67,7 +67,8 @@ echollage.playlist = function() {
     };
 
     var error_wrapper = function() {
-      error_callback('There was a problem reaching Echo Nest.');
+      if (error_callback)
+        error_callback('There was a problem reaching Echo Nest.');
     };
 
     jQuery.ajax({
@@ -103,7 +104,9 @@ echollage.collage = function() {
   var WIDTH = 6;
   var HEIGHT = 4;
   var MAX_ARTIST_TRACKS = 2;
+  var SET_ARTIST_DELAY = 5000;
 
+  var set_artist_timeout = null;
   var active_id = null;
   var hovering_id = null;
   var last_loaded_id = null;
@@ -188,8 +191,14 @@ echollage.collage = function() {
   // Plays a cell DOM node by starting audio and changing any UI elements.
   function play(id) {
     var cell = jQuery(id);
-    if (id !== active_id)
-      echollage.controller.set_focal_artist(cell.attr('artist_id'));
+    if (id !== active_id) {
+      var artist_id = cell.attr('artist_id');
+      clearTimeout(set_artist_timeout);
+      set_artist_timeout = setTimeout(function() {
+        if (id === active_id)
+          echollage.controller.set_focal_artist(artist_id);
+      }, SET_ARTIST_DELAY);
+    }
 
     if (active_id)
       pause(active_id);
@@ -370,8 +379,7 @@ echollage.controller = function() {
   var handle_playlist = function(result_playlist) {
     if (!result_playlist || result_playlist.length === 0)
       return;
-    if (update_timeout)
-      clearTimeout(update_timeout);
+    clearTimeout(update_timeout);
     playlist = result_playlist;
     update();
   };
@@ -418,11 +426,24 @@ echollage.startup = function() {
   }
 
   var ready = function() {
-    jQuery('#artist_name').removeAttr('disabled');
+    jQuery('#artist_name').focus();
     jQuery('#artist_name').keypress(function(e) {
-      if(e.which == 13)
+      if (e.which == 13 && this.value !== '')
         enter();
     });
+
+    // Placeholder behavior.
+    // There is currently no |oninput| support in jQuery.
+    var artist_name = document.getElementById('artist_name');
+    artist_name.oninput = function() {
+      if (this.value === '')
+        this.classList.add('empty');
+      else
+        this.classList.remove('empty');
+    };
+
+    // Internet Explorer support.
+    artist_name.onpropertychange = artist_name.oninput;
   };
 
   return {
