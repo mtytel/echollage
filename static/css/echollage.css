@@ -160,7 +160,7 @@ body {
 
 #artist_default {
   border-color: #7CF !important;
-  z-index:4;
+  z-index:5;
 }
 
 #echollage input:focus {

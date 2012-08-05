@@ -376,7 +376,7 @@ echollage.controller = function() {
   }
 
   // Receives a playlist and if it's valid will begin updates.
-  var handle_playlist = function(result_playlist) {
+  var set_playlist = function(result_playlist) {
     if (!result_playlist || result_playlist.length === 0)
       return;
     clearTimeout(update_timeout);
@@ -385,18 +385,12 @@ echollage.controller = function() {
   };
 
   var set_focal_artist = function(focal_artist_id) {
-    echollage.playlist.get_playlist_by_id(focal_artist_id, handle_playlist);
+    echollage.playlist.get_playlist_by_id(focal_artist_id, set_playlist);
   };
-
-  function start(initial_playlist) {
-    playlist = initial_playlist;
-    echollage.collage.init();
-    update();
-  }
 
   return {
     set_focal_artist: set_focal_artist,
-    start: start
+    set_playlist: set_playlist
   };
 }();
 
@@ -404,11 +398,19 @@ echollage.controller = function() {
 echollage.startup = function() {
   var TEXT_FADE_OUT = 1000;
 
+  function reset() {
+    jQuery('#artist_name').removeAttr('disabled')
+                          .val('').addClass('empty').focus();
+    jQuery('.status').text('');
+    jQuery('#artist_spinner').hide();
+  }
+
   function enter() {
     var success = function(playlist) {
       jQuery('.status').text("Let's do it!");
       jQuery('#artist_entry').fadeOut(TEXT_FADE_OUT, function() {
-        echollage.controller.start(playlist);
+        echollage.controller.set_playlist(playlist);
+        reset();
       });
     };
 
@@ -425,11 +427,16 @@ echollage.startup = function() {
     jQuery('#artist_spinner').fadeIn();
   }
 
-  var ready = function() {
-    jQuery('#artist_name').val('').addClass('empty').focus();
+  var init = function() {
     jQuery('#artist_name').keypress(function(e) {
       if (e.which == 13 && this.value !== '')
         enter();
+    });
+    reset();
+
+    jQuery(document).bind('keypress', function() {
+      jQuery('#artist_entry').fadeIn();
+      jQuery('#artist_name').focus();
     });
 
     // Placeholder behavior.
@@ -438,8 +445,10 @@ echollage.startup = function() {
     artist_name.oninput = function() {
       if (this.value === '')
         this.classList.add('empty');
-      else
+      else {
+        jQuery('#artist_entry').fadeIn();
         this.classList.remove('empty');
+      }
     };
 
     // Internet Explorer support.
@@ -447,18 +456,21 @@ echollage.startup = function() {
   };
 
   return {
-    ready: ready
+    init: init
   };
 }();
 
 // Support for browsers that don't like cross site scripting.
 jQuery.support.cors = true;
 
-// Once the soundManager and window load, call echollage.startup.ready.
-echollage.ready = echollage.on_multiple_ready(2, echollage.startup.ready);
+// Once the soundManager and window load, call echollage.startup.init.
+echollage.init = echollage.on_multiple_ready(2, function() {
+  echollage.collage.init();
+  echollage.startup.init();
+});
 
 soundManager.setup({
   url: '/SoundManager2/swf/',
-  onready: echollage.ready
+  onready: echollage.init
 });
-window.onload = echollage.ready;
+window.onload = echollage.init;
