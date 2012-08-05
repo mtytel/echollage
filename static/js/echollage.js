@@ -420,9 +420,11 @@ echollage.startup = function() {
   };
 }();
 
-// Once the soundManager and the window load, call echollage.startup.ready.
-echollage.ready = echollage.on_multiple_ready(2, echollage.startup.ready);
+// Support for browsers that don't like cross site scripting.
 jQuery.support.cors = true;
+
+// Once the soundManager and window load, call echollage.startup.ready.
+echollage.ready = echollage.on_multiple_ready(2, echollage.startup.ready);
 
 soundManager.setup({
   url: '/SoundManager2/swf/',
