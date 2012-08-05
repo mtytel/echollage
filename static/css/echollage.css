@@ -129,13 +129,17 @@ body {
   color: #A1A5BA;
 }
 
+#artist_entry p.status {
+  color:#888;
+  font-size:12px;
+}
+
 #echollage input {
   -webkit-border-radius: 5px;
   -moz-border-radius: 5px;
   border-radius: 5px;
   background-color:#111;
   border-color: #CDF;
-  margin-left:10px;
   color:white;
   height:35px;
   width:530px;

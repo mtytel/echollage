@@ -17,6 +17,7 @@ echollage.on_multiple_ready = function(number, callback) {
 // Echonest API static playlist requester.
 // Call |get_playlist| to get a new static playlist based on an artist id.
 echollage.playlist = function() {
+  var REQUEST_TIMEOUT = 12000;
   var base_url = 'http://developer.echonest.com/api/v4/playlist/static';
   var default_data = {
     api_key: echollage.echo_nest_key,
@@ -53,7 +54,7 @@ echollage.playlist = function() {
 
   // Makes a static playlist request to The Echo Nest given |request_data|.
   function get_playlist(request_data, success_callback, error_callback) {
-    var callback_wrapper = function(data) {
+    var success_wrapper = function(data) {
       if (data.response && data.response.status.code === 0) {
         var playlist = extract_playlist(data);
         if (playlist) {
@@ -62,14 +63,20 @@ echollage.playlist = function() {
         }
       }
       if (error_callback)
-        error_callback();
+        error_callback("Couldn't find that artist.");
     };
+
+    var error_wrapper = function() {
+      error_callback('There was a problem reaching Echo Nest.');
+    };
+
     jQuery.ajax({
       url: base_url,
       data: request_data,
       dataType: 'jsonp',
-      success: callback_wrapper,
-      error: error_callback,
+      success: success_wrapper,
+      error: error_wrapper,
+      timeout: REQUEST_TIMEOUT,
       traditional: true
     });
   }
@@ -391,18 +398,21 @@ echollage.startup = function() {
 
   function enter() {
     var success = function(playlist) {
+      jQuery('.status').text("Let's do it!");
       jQuery('#artist_entry').fadeOut(TEXT_FADE_OUT, function() {
         echollage.controller.start(playlist);
       });
     };
 
-    var error = function() {
+    var error = function(message) {
       jQuery('#artist_name').removeAttr('disabled').focus();
       jQuery('#artist_spinner').fadeOut();
+      jQuery('.status').text(message);
     };
 
     var artist_name = jQuery('#artist_name').val();
     echollage.playlist.get_playlist_by_name(artist_name, success, error);
+    jQuery('.status').text('Searching...');
     jQuery('#artist_name').attr('disabled', true).blur();
     jQuery('#artist_spinner').fadeIn();
   }
