@@ -437,13 +437,10 @@ echollage.startup = function() {
     var artist_name = document.getElementById('artist_name');
     artist_name.oninput = function() {
       if (this.value === '')
-        this.classList.add('empty');
+        jQuery('#artist_name').addClass('empty');
       else
-        this.classList.remove('empty');
+        jQuery('#artist_name').removeClass('empty');
     };
-
-    // Internet Explorer support.
-    artist_name.onpropertychange = artist_name.oninput;
   };
 
   return {
