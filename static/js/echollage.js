@@ -420,7 +420,7 @@ echollage.startup = function() {
 
     var artist_name = jQuery('#artist_name').val();
     echollage.playlist.get_playlist_by_name(artist_name, success, error);
-    jQuery('.status').text('Searching...');
+    jQuery('.status').text('');
     jQuery('#artist_name').attr('disabled', true).blur();
     jQuery('#artist_spinner').fadeIn();
   }
