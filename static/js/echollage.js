@@ -422,7 +422,7 @@ echollage.startup = function() {
 
     var artist_name = jQuery('#artist_name').val();
     echollage.playlist.get_playlist_by_name(artist_name, success, error);
-    jQuery('.status').text('Searching...');
+    jQuery('.status').text('');
     jQuery('#artist_name').attr('disabled', true).blur();
     jQuery('#artist_spinner').fadeIn();
   }
@@ -444,15 +444,19 @@ echollage.startup = function() {
     var artist_name = document.getElementById('artist_name');
     artist_name.oninput = function() {
       if (this.value === '')
-        this.classList.add('empty');
+        jQuery('#artist_name').addClass('empty');
       else {
-        jQuery('#artist_entry').fadeIn();
-        this.classList.remove('empty');
+        jQuery('#artist_name').removeClass('empty');
       }
     };
 
     // Internet Explorer support.
-    artist_name.onpropertychange = artist_name.oninput;
+    artist_name.onpropertychange = function() {
+      if (event.propertyName === 'value' &&
+          jQuery('#artist_name').attr('value') === '') {
+        jQuery('#artist_name').addClass('empty');
+      }
+    }
   };
 
   return {
