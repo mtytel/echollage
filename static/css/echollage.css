@@ -79,18 +79,6 @@ body {
   opacity: 0.6;
 }
 
-#artist_spinner {
-  z-index:7;
-  position:absolute;
-  display:none;
-  top:7px;
-  right:5px;
-  width:30px;
-  height:30px;
-  background-position:center;
-  background-image:url(/static/images/spinner.gif);
-}
-
 #grid div.play {
   background-repeat:no-repeat;
   background-position:center;
@@ -131,8 +119,24 @@ body {
 }
 
 #artist_entry p.status {
+  z-index:7;
+  position:absolute;
+  bottom:5px;
+  right:40px;
   color:#888;
   font-size:12px;
+}
+
+#artist_spinner {
+  z-index:7;
+  position:absolute;
+  display:none;
+  top:7px;
+  right:5px;
+  width:30px;
+  height:30px;
+  background-position:center;
+  background-image:url(/static/images/spinner.gif);
 }
 
 #echollage input {

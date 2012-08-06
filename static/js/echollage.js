@@ -15,6 +15,7 @@ echollage.on_multiple_ready = function(number, callback) {
 };
 
 // Echonest API static playlist requester.
+// Possibly make this a dynamic playlist if we can request more songs later.
 // Call |get_playlist| to get a new static playlist based on an artist id.
 echollage.playlist = function() {
   var REQUEST_TIMEOUT = 12000;
@@ -29,7 +30,7 @@ echollage.playlist = function() {
     limit: true,
     results: 100,
     type: 'artist-radio',
-    variety: 0.7
+    variety: 1.0
   };
 
   // Takes data returned from The Echo Nest and returns an array of track
@@ -68,7 +69,7 @@ echollage.playlist = function() {
 
     var error_wrapper = function() {
       if (error_callback)
-        error_callback('There was a problem reaching Echo Nest.');
+        error_callback('No response from The Echo Nest.');
     };
 
     jQuery.ajax({
@@ -397,6 +398,8 @@ echollage.controller = function() {
 // The initial display, will look up an artist for the first playlist.
 echollage.startup = function() {
   var TEXT_FADE_OUT = 1000;
+  var TEXT_FADE_OUT_WAIT = 1000;
+  var first_time = true;
 
   function reset() {
     jQuery('#artist_name').removeAttr('disabled')
@@ -412,11 +415,12 @@ echollage.startup = function() {
         echollage.controller.set_playlist(playlist);
         reset();
       });
+      first_time = false;
     };
 
     var error = function(message) {
       jQuery('#artist_name').removeAttr('disabled').focus();
-      jQuery('#artist_spinner').fadeOut();
+      jQuery('#artist_spinner').fadeOut('fast');
       jQuery('.status').text(message);
     };
 
@@ -424,7 +428,7 @@ echollage.startup = function() {
     echollage.playlist.get_playlist_by_name(artist_name, success, error);
     jQuery('.status').text('');
     jQuery('#artist_name').attr('disabled', true).blur();
-    jQuery('#artist_spinner').fadeIn();
+    jQuery('#artist_spinner').fadeIn('fast');
   }
 
   var init = function() {
@@ -435,19 +439,32 @@ echollage.startup = function() {
     reset();
 
     jQuery(document).bind('keypress', function() {
-      jQuery('#artist_entry').fadeIn();
+      jQuery('#artist_entry').fadeIn('fast');
       jQuery('#artist_name').focus();
     });
+
+    var fade_out_timeout = null;
+    var wait_to_fade_out = function() {
+      clearTimeout(fade_out_timeout);
+      fade_out_timeout = setTimeout(function() {
+        if (jQuery('#artist_name').val() === '' && !first_time) {
+          jQuery('#artist_entry').fadeOut(function() {
+            jQuery('.status').text('');
+          });
+        }
+      }, TEXT_FADE_OUT_WAIT);
+    };
 
     // Placeholder behavior.
     // There is currently no |oninput| support in jQuery.
     var artist_name = document.getElementById('artist_name');
     artist_name.oninput = function() {
-      if (this.value === '')
+      if (this.value === '') {
         jQuery('#artist_name').addClass('empty');
-      else {
-        jQuery('#artist_name').removeClass('empty');
+        wait_to_fade_out();
       }
+      else
+        jQuery('#artist_name').removeClass('empty');
     };
 
     // Internet Explorer support.
@@ -455,6 +472,7 @@ echollage.startup = function() {
       if (event.propertyName === 'value' &&
           jQuery('#artist_name').attr('value') === '') {
         jQuery('#artist_name').addClass('empty');
+        wait_to_fade_out();
       }
     }
   };
