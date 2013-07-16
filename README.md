@@ -1,6 +1,6 @@
 Echollage
 =========
-Ech(o Nest C)ollage: http://tytel.org/echollage
+Ech(o Nest C)ollage: http://echollage.com
 
 A web app to explore new music through a changing grid of album art.
 
